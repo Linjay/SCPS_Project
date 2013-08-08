@@ -1,0 +1,74 @@
+#
+# SCPS Makefile
+#
+#
+# Directories
+#
+#SYMTAB= -g -pg -a
+SYMTAB= -g
+OTHERLIBS= 
+LIBS = -L./ -lscps $(OTHERLIBS)
+INCLUDEDIR=../include/
+SOURCEDIR=../source/
+BINDIR=../bin/
+LIBDIR=../lib/
+CC= gcc
+OPTFLAG=-O4
+#CFLAGS=
+CFLAGS= $(SYMTAB) $(OS)
+OS=
+
+TTCP=-DTCP_NODELAY
+
+.c.o:
+	$(CC) -c $(OPTFLAG) $(CFLAGS) -I$(SOURCEDIR) -I$(INCLUDEDIR) $<
+
+
+all:	scps_ttcp scps_init scps_resp ramp gateway
+
+gateway:  $(LIBDIR)libscps.a gateway.o
+	$(CC) $(SYMTAB) $(OPTFLAG) $(TTCP) -I$(SOURCEDIR) -I$(INCLUDEDIR) -DGATEWAY_SELECT -o gateway \
+	gateway.c $(LIBS) -L$(LIBDIR)
+	cp gateway $(BINDIR)
+
+scps_ttcp:  $(LIBDIR)libscps.a ttcp.o
+	 $(CC) $(SYMTAB) $(CFLAGS) $(OPTFLAG) $(TTCP) -I$(SOURCEDIR) -I$(INCLUDEDIR) -o scps_ttcp \
+	ttcp.c $(LIBS) -L$(LIBDIR)
+	cp scps_ttcp $(BINDIR)
+
+ramp:	$(LIBDIR)libscps.a ramp.o
+	$(CC) $(SYMTAB) $(CFLAGS) $(OPTFLAG) $(TTCP) -I$(SOURCEDIR) -I$(INCLUDEDIR) -o ramp \
+	ramp.c $(LIBS) -L$(LIBDIR)
+	cp ramp $(BINDIR)
+
+scps_init:  $(LIBDIR)libscps.a scps_initiator.o scps_config.o
+	 $(CC) $(SYMTAB) $(CFLAGS) $(OPTFLAG) -I$(SOURCEDIR) -I$(INCLUDEDIR) -o scps_init \
+	scps_initiator.c scps_config.c $(LIBS) -L$(LIBDIR)
+	cp scps_init $(BINDIR)
+
+scps_resp:  $(LIBDIR)libscps.a scps_responder.o scps_config.o
+	 $(CC) $(SYMTAB) $(CFLAGS) $(OPTFLAG) $(TTCP) -I$(SOURCEDIR) -I$(INCLUDEDIR) -o scps_resp \
+	scps_responder.c scps_config.c $(LIBS) -L$(LIBDIR)
+	cp scps_resp $(BINDIR)
+
+# Need's to be compiled with the same flags as libscps.a so that tp_socket matches.
+tp_debug: ../source/tp_interactive_debug.o
+	$(CC) $(SYMTAB) $(CFLAGS) $(OPTFLAG) -o tp_debug ../source/tp_interactive_debug.o
+
+distclean:
+	rm -f *.o *.core scps_init scps_resp scps_ttcp gateway ramp Makefile
+
+clean:
+	rm -f *.o scps_init scps_resp scps_ttcp gateway ramp tp_debug
+
+status:
+	cvs status -v . | egrep Status | egrep -v "Up-to-date"
+
+# hand-generated dependencies
+ramp.c: $(LIBDIR)libscps.a $(INCLUDEDIR)scps.h
+ttcp.c: $(LIBDIR)libscps.a $(INCLUDEDIR)scps.h
+gateway.c: $(LIBDIR)libscps.a $(INCLUDEDIR)scps.h
+scps_initiator.c:  scps_config.o $(LIBDIR)libscps.a $(INCLUDEDIR)scps.h
+scps_responder.c:  scps_config.o $(LIBDIR)libscps.a $(INCLUDEDIR)scps.h
+scps_config.c:  $(LIBDIR)libscps.a $(INCLUDEDIR)scps.h
+

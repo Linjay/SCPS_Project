@@ -1,0 +1,151 @@
+#
+#  This is unclassified Government software.
+#
+#  This source was developed under a prototype development contract by
+#  Science Applications International Corporation (SAIC) in McLean,
+#  Virginia for the Jet Propulsion Laboratories (JPL) of the National
+#  Aeronautics and Space Administration (NASA) for the Space
+#  Communications Protocol Standards (SCPS) project.
+#    
+#  SAIC assumes no legal responsibility for the source code and its
+#  subsequent use.  No warranty is expressed or implied.
+#
+#
+#**********************************************************
+#* Makefile for client and server using SCPS-TP           *
+#**********************************************************
+#
+
+OPT=
+COMMON= 
+SCPS_TP=
+MYFLAGS= -I. ${COMMON} ${SCPS_TP}
+DEBUG=
+BLDSIZE=
+LIBS=
+CFLAGS= ${OPT} ${DEBUG} ${MYFLAGS} ${BLDSIZE}
+
+CC = gcc
+
+# Small server .o files
+OBJSS=  server.o    \
+	cmdsa.o     \
+	crcnt.o     \
+	libs.o      \
+	edit.o      \
+        rx_avail.o  \
+	scps_opt.o  \
+	date.o
+
+# Small client .o files
+OBJSC=  sfp.o       \
+	cmdca.o     \
+	libc.o      \
+	sortupdt.o  \
+	edit.o      \
+	autopa.o    \
+	rx_avail.o  \
+	crcnt.o     \
+	scps_opt.o  \
+	logc.o      \
+	date.o
+
+# Medium server .o files
+OBJMS=  server.o    \
+	cmdsa.o     \
+	cmdsb.o     \
+	crcst.o     \
+  rp.o        \
+	libs.o      \
+  mibr.o      \
+  smibtab.o   \
+	edit.o      \
+  rx_avail.o  \
+	scps_opt.o  \
+	date.o
+
+# Medium client .o files
+OBJMC=  sfp.o       \
+	cmdca.o     \
+	cmdcb.o     \
+	libc.o      \
+  mibr.o      \
+  cmibtab.o   \
+	sortupdt.o  \
+  rp.o        \
+	edit.o      \
+	autopa.o    \
+	rx_avail.o  \
+	crcst.o     \
+	logc.o      \
+	scps_opt.o  \
+	date.o
+
+# Large server .o files
+OBJLS=  server.o    \
+	cmdsa.o     \
+	cmdsb.o     \
+	cmdsc.o     \
+	crcst.o     \
+  rp.o        \
+	libs.o      \
+  mibr.o      \
+  smibtab.o   \
+	edit.o      \
+  rx_avail.o  \
+	scps_opt.o  \
+	date.o
+
+# Large client .o files
+OBJLC=  sfp.o       \
+	cmdca.o     \
+	cmdcb.o     \
+	cmdcc.o     \
+	libc.o      \
+  mibr.o      \
+  cmibtab.o   \
+	sortupdt.o  \
+  rp.o        \
+	edit.o      \
+	autopa.o    \
+	rx_avail.o  \
+	crcst.o     \
+	logc.o      \
+	scps_opt.o  \
+	date.o
+
+OBJTIME=prtstat.o
+
+# Client .o files
+OBJC=
+
+# Server .o files
+OBJS=
+
+.c.o:
+	${CC} -c -o $@ ${CFLAGS} $<
+
+all: sfp server scpsdiff crcchk
+
+distclean:
+	rm -f *.o sfp server scpsdiff crcchk makefile.in1 makefile.in2 Makefile
+
+clean:
+	rm -f *.o sfp server scpsdiff crcchk makefile.in1 makefile.in2
+
+status:
+	cvs status -v . | egrep Status | egrep -v "Up-to-date"
+
+sfp: ${OBJC} Makefile
+	${CC} -o $@ ${CFLAGS} ${OBJC} ${LIBS}
+	touch date.c
+
+server: ${OBJS} Makefile
+	${CC} -o $@ ${CFLAGS} ${OBJS} ${LIBS}
+	touch date.c
+
+scpsdiff: scpsdiff.o bincmp.o Makefile
+	${CC} -o $@ ${CFLAGS} scpsdiff.o bincmp.o 
+
+crcchk: crcchk.o crcst.o Makefile
+	${CC} -o $@ ${CFLAGS} crcchk.o crcst.o 

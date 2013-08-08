@@ -1,0 +1,18 @@
+# GW Resource File - comments are allowed, starting with '#'.
+#    Comments can be anywhere EXCEPT between parameter values.
+
+# interface A info
+AIF_NAME	eth1
+AIF_BUF		16000
+AIF_CC		1
+
+
+# interface B info
+BIF_NAME	eth2         
+BIF_BUF		500000
+BIF_RATE	2000000
+BIF_CC		0
+BIF_MINRTO	600000
+
+# IPFW info
+C_DIVPORT	52000 	

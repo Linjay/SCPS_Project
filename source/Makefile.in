@@ -1,0 +1,410 @@
+#
+# SCPS Makefile
+#
+#
+# Directories
+#
+INCLUDEDIR=../include/
+LIBDIR=../lib
+
+INCLUDEFLAGS=-I. -I$(INCLUDEDIR)
+
+#
+# System Configuration Constants:
+#====================================================
+# Sparc - Host processor architecture is Sparc
+# I386   - Host processor achitecture is Intel 80386/80486/Pentium
+# Mips  - Host processor architecture is Mips R3000/R4000
+# Mc68000 - Host processor architecture is Motorola 68000 family
+# SOLARIS - Used in conjunction with Sparc for operating over Solaris 2.x
+#          CPU = -DI386 | -DSparc | -DMips | -DMc68000
+#
+CPU= 
+
+# OS used to support "portability" issues for RAWIP operations
+#OS = -DSUNOS | -DSOLARIS | -DIRIX | -DNETBSD [ | -DLINUX | -DFREEBSD]
+#
+OS=
+
+# Protocol Configuration Constants:
+# SCPSTP will always be built - options are whether to use the
+#  security protocol (SCPS-SP), and which network protocol to use
+#  (IP or SCPS-NP).
+#
+# SCPSSP - Security protocol present
+# USESCPSNP - Network protocol present
+# NOTE: Either -DIP or -DUSESCPSNP must be present for the network layer
+# ENCAP_UDP - Using UDP Encapsulation
+# ENCAP_RAW - Using RAW IP in RAW IP Encapsulation
+# ASSUME_CORRUPT - Assume that loss is a sign of corruption not congestion.
+# PROTOCOLS = -DIP | -DUSESCPSNP [-DASSUME_CORRUPT] [ -DSCPSSP ] [-DENCAP_UDP | -DENCAP_RAW]
+#
+PROTOCOLS=
+
+# LOWER_LAYER provides information regarding encapsulation to the ll_support code
+# LOWER_LAYER = [ -DLL_RAWIP | -DLL_LOOPBACK  ]
+#
+LOWER_LAYER=
+
+MEMORY=
+
+SYS_MEMORY= -DSYS_MEMORY=$(MEMORY)
+
+WHICH_COMPRESS=
+COMMON = $(CPU) $(OS) $(PROTOCOLS) $(LOWER_LAYER) $(SYS_MEMORY) $(NL_DEFAULT)
+
+# Transport specific options
+# -DCONGEST              : Enable congestion control (TCP Vegas style)
+# -DCONGEST -DVJ_CONGEST : Enable standard TCP congestion control AND Vegas
+#			 :  (Selectable on per-connection basis)
+# -DOPT_SCALE            : Enable RFC 1323 window scaling
+# -DOPT_COMPRESS         : Enable SCPS header compression
+# -DOPT_OLD_COMPRESS     : Enable earlier and incompatable verison of
+#                        :  SCPS header compression
+# -DOPT_TSTMP            : Enable RFC 1323 timestamp option
+# -DOPT_SNACK1           : Enable selective negative acknowledgment
+# -DOPT_BETS             : Enable Best Effort Transport Service (BETS)
+# -DINIT_CWND_INCR       : Enable initial cwnd up to 4380 bytes (J. C. Hoe)
+# -DLINUX_STYLE_FIRST_DATA_RTO
+#			 : Reset RTO when transitioning to ESTAB state.
+#			 : (important for low data rate links where the
+#			 : RTT of the SYN is considerably lower than the
+#			 : RTT of a MSS-sized
+# -DMFX_TRANS            : Enable multiple forward transmissions (mutex
+#                        :  with ALL congestion control schemes
+# -DMFX_SND_UNA_HOLE	 : Enable multiple forward transmissions on first
+#			   hole when having to perform a retransmission
+# -DOPT_RECORD_BOUNDARY  : Enable record boundaries on SOCK_SEQPACKET sockets
+#
+
+# Other options:
+# -DNO_CVS_IDENTIFY      : Causes a statically allocated string (a la rcsid)
+#                          to NOT be allocated in each file containing the file's
+#                          name and CVS revision.  Having the string increases
+#                          object size by about 50 bytes/file, and ehese ARE
+#                          included in libscps.a and everything that links it in.
+
+#
+# If variable is non-zero, the initial cwnd will be set to this value.  NOTE
+# this will override INIT_CWND_INCR.  This is present for experimental
+# purposes only.  
+#
+INIT_CWND= 
+#
+
+SET_INITIAL_CWND = -DSET_INITIAL_CWND=$(INIT_CWND)
+
+SCPS_TP =  -DOPT_SCALE -DOPT_SNACK1 -DOPT_BETS -DOPT_TSTMP \
+	-DCONGEST -DVJ_CONGEST -DOPT_SCPS -DINIT_CWND_INCR -DOPT_RECORD_BOUNDARY \
+	-DIP_ICMP -DLINUX_STYLE_FIRST_DATA_RTO $(SET_INITIAL_CWND) -DCWND_INFLATE_THROTTLE
+
+DEFINES = $(COMMON) $(SCPS_TP) 
+
+#
+# The following options are specific to the SCPS-TP to TCP gateway.  You should compile
+# with --gateway=yes
+#
+# GATEWAY		: This optiont turns on the SCPS-TP to TCP gateway.
+#
+# GATEWAY_SELECT        : This allows the select code to handle more that 32
+#                          simultaneous sockets.  This must be defined when
+#                          compiling the gateway.  --gateway=yes will 
+#                          automatically include this.
+# UDP_GATEWAY           : This option will allow UDP traffic to be gatewayed
+#                          as-well-as TCP traffic.  Essentially this means UDP
+#                          traffic will be under rate control. 
+# GATEWAY_STRICT	: This option turns on the gateway strict memory management
+#                          control.  When this option is turned on, the gateway 
+#                          will determine exactly how much memory is needed for the
+#                          connection's socket buffers.  If the gateway cannot
+#                          guarentee this memory, the connection will not be
+#                          opened.
+#
+# FAIRER_GATEWAY	: This appears to be stable.  The gateway code itself does
+#                          not provide equal service for concurrent connections.
+#                          This options does not provide equal service among
+#			   concurrent connections, but it does try to distribute
+#			   the rate a bit more evenly.
+
+#
+# To use the following, you must compile with --debug=yes in order to include
+# the correct object files.
+#
+
+# DEBUG_XPLOT		 : Output a text file (xplotfile) that contains xplot
+#			 :   commands.  This file should be plotted along with
+#			 :   the tcptrace time-sequence graph and contains lots
+#			 :   of fun and useful information about what's going on.
+#
+# DEBUG_TCPTRACE         : Include tcptrace time-sequence graph information in the
+#                        :   xplot file.  This includes snduna, awnd, dupack, and
+#                        :   packet (re)transmission info.  This is useful if you
+#                        :   can't or don't want to synchronize the clocks on the
+#			 :   tcpdump machine and the end system.
+#
+# DEBUG_TIMING		 : Output a text file (timingfile) with information about
+#			 :   which packets are being timed.  DEBUG_XPLOT shows these
+#			 :   graphically, so this may be less useful than it once was.
+#
+# DEBUG_HOLES		 : Vigorously check the sender-side hole structure for errors.
+#
+# DEBUG_LOG_FILES_OFF	 : Turn off anything that uses logeventv.
+#
+# DEBUG_LOG              : Output a text file (logfile) containing
+#			 :   timestamp acknum snd_prevcwnd, snd_ssthresh, diff, snd_cwnd [rtt, rttseq]
+#
+# DEBUG_SEQNUM		 : Pring sender sequence number information.  This was originally used
+#			 :   to track down a problem in the SNACK hole structure that caused
+#			 :   serious out-of-order packets to be sent.
+#
+# DEBUG_SNACK		 : Print info about SNACKs & holes (sender & receiver info)
+#
+# DEBUG_MEMORY		 : Be more careful about memory usage?  Also turns on the BUG_HUNT macro.
+#			   WARNING: This _WILL_ cause NOTICABLE performance degradataion while it
+#			   makes sure that memory structures are consistant.
+#
+# DEBUG_CWND		 : When this and DEBUG_XPLOT are on, print cwnd info to the
+#			   xplot file.
+#
+# DEBUG_GATEWAY		 : Output a log file containing gateway specific
+#			   information.
+#
+# DEBUG_STATE		 : Output a file containing information about changes in the TCP state
+#			   machine.
+#
+# DEBUG_ACKNUM           : Output a file containing information about incoming acknowledgement
+#	 		   numbers.  This is probably moot if you're using tcptrace.
+#
+# DEBUG_RATE		 : Output information about rate control to a file.  Note that
+#			   rate is shared among all connections using a specific route, so
+#			   what you see in a particular connection may be influenced by others.
+#
+# DEBUG_ERRORS		 : Print info to stdout about who calls SET_ERR
+#
+#
+# Example:
+#	DEBUG= -DDEBUG_XPLOT -DDEBUG_CWND
+#
+DEBUG=
+
+#CL is for command line stuff that you want to pass in
+CL = 
+
+# SYMTAB is set to -g to have symbolic debugger information present, blank to not
+#   -fprofile-arcs and -ftest-coverage to use gcov (gcc 2.8.1)
+#   WARNING: -O4 and gcov seem to be incompatible
+#SYMTAB = -g -pg -a
+SYMTAB= 
+
+# Default Network Layer
+NL_DEFAULT=
+
+INCLUDEFLAGS=-I. -I$(INCLUDEDIR)
+
+CFLAGS = -Wall  $(SYMTAB) $(DEBUG) $(DEFINES) $(CL)
+
+OPTFLAG = -O4
+
+# For Solaris 2.x
+#OTHERLIBS= -lsocket -lnsl -lm
+# For non-Solaris systems
+#OTHERLIBS= -lm
+#
+OTHERLIBS=
+
+# Encapsulation defines the lower-layer support to use
+# raw        - TP over RAWIP or TP over NP encapsulated in RAW IP (most efficient, req. root access)
+# udp        - TP over NP or IP encapsulated in UDP/IP (28 bytes overhead/segment)
+# loop       - for TP over NP or IP encapsulated in UDP/IP for use on a single host (28 bytes/overhead)
+# encap_raw  - for TP/IP encapsulated in RAW_IP (NOTE:  2 IP headers on the wire!).
+# ENCAPSULATION = raw | udp | loop | encap_raw
+
+ENCAPSULATION= 
+
+# Definition of the network prototols to be used (this is different
+# from the encapsulation type!);
+#
+# NETOBJS must choose between IP and SCPS-NP, SCPS-SP can be used 
+# (optionally) with either network protocol;
+# IP-in-IP encapsulation (to be used with UDP encapsulation) - IPnIPOBJS
+# IP - IPOBJS
+# NP - NPOBJS
+# SP - Use SCPS-SP with one of the above network protocols
+# Possible configurations:
+#
+# NETOBJS = $(IPnIPOBJS)
+# NETOBJS = $(IPOBJS)
+# NETOBJS = $(NPOBJS)
+# NETOBJS = $(IPnIPOBJS) $(SPOBJS)
+# NETOBJS = $(IPOBJS) $(SPOBJS)
+# NETOBJS = $(NPOBJS) $(SPOBJS)
+#
+NETOBJS= 
+
+
+# Library definition
+LIBS = -L./ -lscps $(OTHERLIBS)
+
+CC = gcc       # thread.o won't build without gcc's inline assembly - sorry
+AR = ar r      # replace ar with the path of the gnu ar if you like
+
+THREAD_SOURCE=
+SPOBJS = scps_sp.o scps_spc.o md5.o scps_sadb.o
+
+# When the configure script is run with --debug=yes, tp_debug.o and
+# gmt2local.o and scps_errorNames.o will appear here.
+DEBUG_OBJECTS=
+
+TUN_SRSC=
+
+TAP_SRSC=
+
+SRCS = buffer.c compress.c errors.c get_local_internet_addr.c ll_support.c \
+	scmp.c scps_config.c scps_globali.c scps_globalr.c \
+	scps_initiator.c scps_responder.c $(THREAD_SOURCE) tp.c tp_checksum.c \
+	tp_handler.c tp_output.c tp_outseq.c tp_process.c \
+	tp_socket.c tp_sockopt.c tp_timers.c tp_utility.c tp_utility2.c \
+	udp_handler.c create_rules_tun.c create_rules_tap.c \
+	udp_output.c udp_socket.c udp_utility.c wheel_timers.c \
+	ip.c ipv6.c scps_np.c scps_sp.c scps_spc.c md5.c scps_sadb.c q.c \
+	rs_config.c version.c icmp.c nl_protocol.c rt_alloc.c \
+	scps_ri_console.c tap.c other_proto_handler.c new_compress.c
+
+HEADERS = buffer.h compress.h ll.h scps_constants.h scpserrno.h scpstp.h \
+	scpsudp.h systype.h thread.h scps_defines.h ip.h scps_np.h \
+	net_types.h scpsnp_protos.h np_scmp.h scps_sp.h scps_sadb.h md5.h \
+        scps_sadb.h rs_config.h new_compress.h
+
+OBJECTS = buffer.o compress.o errors.o get_local_internet_addr.o ll_support.o \
+	scmp.o scps_globali.o scps_config.o scps_globalr.o thread.o tp.o \
+	tp_checksum.o tp_handler.o tp_output.o tp_outseq.o \
+	tp_process.o tp_socket.o tp_sockopt.o tp_timers.o tp_utility.o \
+	tp_utility2.o  rt_alloc.o create_rules_tun.o create_rules_tap.o \
+	udp_handler.o udp_output.o udp_socket.o udp_utility.o wheel_timers.o \
+	ip.o ipv6.o scps_np.o scps_sp.o scps_spc.o md5.o scps_sadb.o q.o \
+	rs_config.o version.o icmp.o nl_protocol.o tap.o  new_compress.o \
+	scps_ri_console.o other_proto_handler.o $(DEBUG_OBJECTS)
+
+.c.o:
+	$(CC) -c $(OPTFLAG) $(CFLAGS) $(SYMTAB) $(INCLUDEFLAGS) $<
+
+all:  libscps.a 
+
+version.c : Makefile
+	@rm -f version.c
+	@echo "char scps_version [] = \"`whoami`@`hostname` Created SCPS RI Version `cat ../Version` on `date`\nCompile-time Flags: $(OPTFLGA) $(CFLAGS) $(SYMTAB) $(INCLUDEFLAGS)\";" > version.c
+
+thread.o: $(THREAD_SOURCE) thread.h Makefile
+	$(CC) $(SYMTAB) -c $(OPTFLAG) $(CFLAGS) $(INCLUDEFLAGS) $(THREAD_SOURCE) -o thread.o
+
+ssps_np.o : scps_np.c Makefile
+	$(CC) $(SYMTAB) -c $(OPTFLAG) $(CFLAGS) $(INCLUDEFLAGS) scps_np.c
+
+# LL_BUFFER=nnnn - Lower layer socket receive buffer set to nnnn bytes (<= 52k)
+
+ll_support.o: ll_support.c scpstp.h ll.h Makefile
+	$(CC) $(SYMTAB) -c $(OPTFLAG) $(CFLAGS) $(INCLUDEFLAGS) -DLL_BUFFER=51968 ll_support.c
+
+everything: libscps 
+
+TTCP = -DTCP_NODELAY
+
+scps_errorNames.c: ../include/scpserrno.h
+	@rm -f scps_errorNames.[ch]
+	@echo  "typedef struct ErrorName {	\
+			char name[20];		\
+			int  number;		\
+		} ErrorName;			\
+						\
+		extern ErrorName errorNames[];	\
+		" > scps_errorNames.h
+	@echo '#include "errno.h"' > scps_errorNames.c
+	@echo '#include "scps_errorNames.h"' >> scps_errorNames.c
+	@echo "ErrorName errorNames[] = {" >> scps_errorNames.c
+	@grep "#define" ../include/scpserrno.h | grep -v scps_errno | awk '{ printf "{\"%s\", %s},\n", $$2, $$3}' /dev/stdin >> scps_errorNames.c
+	@echo '{"???", -1}' >> scps_errorNames.c
+	@echo "};" >> scps_errorNames.c
+
+libscps.a: $(OBJECTS) $(DEBUG_OBJECTS)
+	$(AR) libscps.a buffer.o compress.o errors.o \
+	get_local_internet_addr.o ll_support.o scmp.o scps_globali.o \
+	thread.o tp.o tp_checksum.o tp_handler.o tp_output.o \
+	tp_outseq.o tp_process.o tp_socket.o tp_sockopt.o tp_timers.o \
+	tp_utility.o tp_utility2.o icmp.o nl_protocol.o \
+	udp_handler.o udp_output.o udp_socket.o udp_utility.o \
+	wheel_timers.o $(NETOBJS) $(DEBUG_OBJECTS) rs_config.o version.o \
+	nl_protocol.o scps_np.o q.o ip.o ipv6.o rt_alloc.o create_rules_tun.o \
+	create_rules_tap.o scps_ri_console.o tap.o other_proto_handler.o \
+	new_compress.o 
+	ranlib libscps.a 
+	cp libscps.a $(LIBDIR)
+
+distclean: clean
+	rm -f Makefile
+
+daclean:
+	rm -f *.da
+
+clean:
+	rm -f *.o *.da *.bb *.bbg libscps.a scps_errorNames.* version.c
+
+status:
+	cvs status -v . | egrep Status | egrep -v "Up-to-date"
+
+tags:
+	etags *.c
+
+# hand-generated dependencies
+libscps.a: buffer.c compress.c errors.c get_local_internet_addr.c \
+	ll_support.c scmp.c scps_globali.c scps_globalr.c $(THREAD_SOURCE) \
+	tp.c tp_checksum.c $(THREAD_SOURCE) tp.c tp_checksum.c tp_debug.c \
+	tp_handler.c tp_output.c tp_outseq.c tp_process.c tp_socket.c \
+	tp_sockopt.c tp_timers.c tp_utility.c tp_utility2.c udp_handler.c udp_output.c \
+	udp_socket.c udp_utility.c wheel_timers.c ip.c ipv6.c scps_np.c scps_sp.c \
+	scps_spc.c md5.c scps_sadb.c q.c rs_config.c version.c icmp.c \
+	ip.c nl_protocol.c rt_alloc.c create_rules_tun.c create_rules_tap.o \
+	scps_ri_console.c tap.c other_proto_handler.c new_compress.c
+
+buffer.o: buffer.c buffer.h Makefile
+version.o: version.c Makefile
+nl_protocol.o: nl_protocol.c Makefile
+compress.o: compress.c scpstp.h ll.h compress.h Makefile 
+new_compress.o: new_compress.c scpstp.h ll.h new_compress.h Makefile 
+errors.o: errors.c systype.h Makefile
+get_local_internet_addr.o: get_local_internet_addr.c systype.h Makefile
+icmp.o: scpstp.h icmp.h Makefile
+scmp.o: scmp.c scpstp.h ll.h Makefile
+nl_protocol.o: nl_protocol.c Makefile
+ip.o: ip.c scps_ip.h other_proto_handler.h Makefile
+ipv6.o: ipv6.c scps_ip.h other_proto_handler.h Makefile
+tap.o: tap.c Makefile
+other_proto_handler.o: other_proto_handler.c other_proto_handler.h Makefile
+create_rules_tun.o: create_rules_tun.c Makefile
+create_rules_tap.o: create_rules_tap.c Makefile
+rt_alloc.o: rt_alloc.c rt_alloc.h Makefile
+scps_globali.o: scps_globali.c scpstp.h ll.h buffer.h Makefile
+scps_globalr.o: scps_globalr.c scpstp.h ll.h buffer.h Makefile
+tp.o: tp.c scpstp.h ll.h scpsudp.h scps_constants.h $(INCLUDEDIR)scpserrno.h thread.h Makefile
+tp_checksum.o: tp_checksum.c scpstp.h ll.h scpsudp.h Makefile
+tp_debug.o: tp_debug.c scpstp.h ll.h scpsudp.h scps_errorNames.c Makefile
+tp_handler.o: tp_handler.c scpstp.h ll.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_output.o: tp_output.c scpstp.h ll.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_outseq.o: tp_outseq.c scpstp.h ll.h Makefile
+tp_process.o: tp_process.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_socket.o: tp_socket.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_sockopt.o: tp_sockopt.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_timers.o: tp_timers.c scpstp.h ll.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_utility.o: tp_utility.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+tp_utility2.o: tp_utility2.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+udp_handler.o: udp_handler.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+udp_output.o: udp_output.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+udp_socket.o: udp_socket.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+udp_utility.o: udp_utility.c scpstp.h ll.h scpsudp.h $(INCLUDEDIR)scpserrno.h Makefile
+wheel_timers.o: wheel_timers.c thread.h Makefile
+scps_sp.o: scps_sp.c scps_sadb.c scps_spc.c md5.c scps_sadb.h scps_sp.h md5.h Makefile
+scps_spc.o: scps_sp.c scps_sadb.c scps_spc.c md5.c scps_sadb.h scps_sp.h md5.h Makefile
+scps_sadb.o: scps_sp.c scps_sadb.c scps_spc.c md5.c scps_sadb.h scps_sp.h md5.h Makefile
+md5.o: scps_sp.c scps_sadb.c scps_spc.c md5.c scps_sadb.h scps_sp.h md5.h Makefile
+rs_config.o: rs_config.c rs_config.h Makefile
+scps_ri_console.o: scps_ri_console.c Makefile
+version.o: version.c Makefile

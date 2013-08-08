@@ -1,0 +1,1205 @@
+diff -Naur tcpdump-3.4/patchlevel.h tcpdump-3.4.scps/patchlevel.h
+--- tcpdump-3.4/patchlevel.h	Thu Jan  1 00:00:00 1970
++++ tcpdump-3.4.scps/patchlevel.h	Fri Nov 21 19:17:44 1997
+@@ -0,0 +1 @@
++SCPS_1
+diff -Naur tcpdump-3.4/Makefile.in tcpdump-3.4.scps/Makefile.in
+--- tcpdump-3.4/Makefile.in	Sun Aug 17 20:53:31 1997
++++ tcpdump-3.4.scps/Makefile.in	Thu Nov 20 23:40:48 1997
+@@ -72,7 +72,7 @@
+ 	print-pim.c print-ppp.c print-raw.c print-rip.c print-sl.c \
+ 	print-snmp.c print-sunrpc.c print-tcp.c print-tftp.c print-udp.c \
+ 	print-wb.c addrtoname.c bpf_dump.c gmt2local.c machdep.c \
+-	parsenfsfh.c util.c savestr.c setsignal.c
++	parsenfsfh.c util.c savestr.c setsignal.c print-scpsnp.c print-scpssp.c
+ LOCALSRC =
+ GENSRC = version.c
+ 
+@@ -84,7 +84,7 @@
+ HDR =   addrtoname.h appletalk.h bootp.h decnet.h \
+ 	ethertype.h extract.h fddi.h gmt2local.h interface.h igrp.h \
+ 	ipx.h llc.h machdep.h mib.h nfsfh.h nfsv2.h ntp.h ospf.h \
+-	savestr.c setsignal.h
++	savestr.c setsignal.h scpsnp.h path.h
+ 
+ TAGHDR = \
+ 	/usr/include/arpa/tftp.h \
+diff -Naur tcpdump-3.4/interface.h tcpdump-3.4.scps/interface.h
+--- tcpdump-3.4/interface.h	Wed May 28 19:54:45 1997
++++ tcpdump-3.4.scps/interface.h	Thu Nov 20 23:39:15 1997
+@@ -52,6 +52,7 @@
+ #define PT_RPC		3	/* Remote Procedure Call */
+ #define PT_RTP		4	/* Real-Time Applications protocol */
+ #define PT_RTCP		5	/* Real-Time Applications control protocol */
++#define PT_SCPS         106       /* SCPS protocol */
+ 
+ #ifndef min
+ #define min(a,b) ((a)>(b)?(b):(a))
+@@ -206,3 +207,4 @@
+ extern void tftp_print(const u_char *, u_int);
+ extern void udp_print(const u_char *, u_int, const u_char *);
+ extern void wb_print(const void *, u_int);
++extern void np_print(const u_char *, u_int);
+diff -Naur tcpdump-3.4/path.h tcpdump-3.4.scps/path.h
+--- tcpdump-3.4/path.h	Thu Jan  1 00:00:00 1970
++++ tcpdump-3.4.scps/path.h	Thu Nov 20 23:35:21 1997
+@@ -0,0 +1,25 @@
++
++
++#define PATHTYPE_NP      0
++#define PATHTYPE_SCMP    1
++#define PATHTYPE_TBD2    2
++#define PATHTYPE_TBD3    3
++#define PATHTYPE_COMPTCP 4
++#define PATHTYPE_UDP     5
++#define PATHTYPE_TCP     6
++#define PATHTYPE_SP      7
++
++#define MAX_TM_LENGTH	90
++#define MAX_TC_LENGTH	256
++
++struct path_header 
++{
++  u_short   version:3,                 /* version number */
++            type:1,
++            datafield:1,               /* data field header flag */
++            tp_id:3,                  /* application process ID */
++            app_id:8;                 /* application process ID */
++  u_short   seq:2,                     /* sequence flags */
++            pcnt:14;                   /* packet count */
++  u_short   length;                    /* packet length */
++};
+diff -Naur tcpdump-3.4/print-ip.c tcpdump-3.4.scps/print-ip.c
+--- tcpdump-3.4/print-ip.c	Wed May 28 19:51:45 1997
++++ tcpdump-3.4.scps/print-ip.c	Fri Nov 21 17:26:27 1997
+@@ -19,6 +19,12 @@
+  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+  */
+ 
++ /*
++    Modified for SCPS project to decode TCP/IP encapsulated in RAW IP, etc.
++    Gregory J. Miller, The MITRE Corporation.
++    8/2/95
++ */
++
+ #ifndef lint
+ static const char rcsid[] =
+     "@(#) $Header: /home/cvsroot/SCPS_RI/tcpdump/tcpdump-3.4.scps.diffs,v 1.2 1999/03/03 18:14:15 kscott Exp $ (LBL)";
+@@ -48,6 +54,7 @@
+ #include "addrtoname.h"
+ #include "interface.h"
+ #include "extract.h"			/* must come after interface.h */
++#include "scpsnp.h"
+ 
+ /* Compatibility */
+ #ifndef	IPPROTO_ND
+@@ -338,6 +345,7 @@
+ 	register const struct ip *ip;
+ 	register u_int hlen, len, off;
+ 	register const u_char *cp;
++	int n;
+ 
+ 	ip = (const struct ip *)bp;
+ #ifdef LBL_ALIGN
+@@ -391,10 +399,34 @@
+ 		cp = (const u_char *)ip + hlen;
+ 		switch (ip->ip_p) {
+ 
++#ifndef IPPROTO_SCPSPRIVSEC
++#define IPPROTO_SCPSPRIVSEC 7
++#endif
++                case IPPROTO_SCPSPRIVSEC:
++                        /* sp_print(cp, len, (const u_char *)ip); */
++                        printf ("%s > %s: ",
++                          ipaddr_string(&ip->ip_src),
++                          ipaddr_string(&ip->ip_dst));
++                        printf("SCPS_SP[%d, 0x%X, %d] <", *cp, *(cp+1), length);
++                        for (n = (int)(cp+2); n<(int)(cp+18); n+=2)
++                          {
++                            printf ("%X%X ", *(u_char *)n, *(u_char *)(n+1));
++                          }
++                        printf("> ");
++                break;
++
++#ifndef IPPROTO_SCPSTP
++#define IPPROTO_SCPSTP 106
++#endif
++                case IPPROTO_SCPSTP:
+ 		case IPPROTO_TCP:
+ 			tcp_print(cp, len, (const u_char *)ip);
+ 			break;
+ 
++#ifndef IPPROTO_SCPSUDP
++#define IPPROTO_SCPSUDP 117
++#endif  IPPROTO_SCPSUDP
++                case IPPROTO_SCPSUDP:
+ 		case IPPROTO_UDP:
+ 			udp_print(cp, len, (const u_char *)ip);
+ 			break;
+@@ -462,6 +494,31 @@
+ 				return;
+   			}
+   			break;
++
++#ifndef IPPROTO_SCPSCOMPRESS
++#define IPPROTO_SCPSCOMPRESS 105
++#endif
++                case IPPROTO_SCPSCOMPRESS:    /* SCPS-TP header compression */
++                        tcp_compressed_print(cp, len, (const u_char *)ip);
++                        break;
++                case IPPROTO_RAW:
++                case /*SCPSNP */ 118:
++                          /* ip-in-Raw-ip encapsulation for SCPS */
++                                       /* look for IP version = 4 as a clue */
++                        if ((cp[0] & 0xf0) == 0x40) {
++                          (void)printf("%s > %s:",
++                                       ipaddr_string(&ip->ip_src),
++                                       ipaddr_string(&ip->ip_dst));
++                          (void)printf(" ip>> ");
++                          ip_print((u_char *)cp, len);
++                        } else if ((cp[0] & SCPSNP_VPI_MASK) == SCPSNP_VPI) {
++                          scpsnp_print(cp, len);
++                        } else {             /* otherwise, hope TCP follows */
++                          (void)printf("(RAW-IP) ");
++                          tcp_print(cp, len, (const u_char *)ip);
++                        }
++                        break;
++
+ 
+ 		default:
+ 			(void)printf("%s > %s:", ipaddr_string(&ip->ip_src),
+diff -Naur tcpdump-3.4/print-scpsnp.c tcpdump-3.4.scps/print-scpsnp.c
+--- tcpdump-3.4/print-scpsnp.c	Thu Jan  1 00:00:00 1970
++++ tcpdump-3.4.scps/print-scpsnp.c	Thu Nov 20 23:27:16 1997
+@@ -0,0 +1,490 @@
++/*
++ * Copyright (c) 1996
++ *	The MITRE Corporation.  All rights reserved.
++ *
++ *      Gregory J. Miller   1/9/96
++ *	Modified to support SCPS-NP 3/23/97 Robert C. Durst
++ *
++ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
++ */
++
++#include <sys/param.h>
++#include <sys/time.h>
++#include <sys/types.h>
++#include <netinet/in.h>
++#include <netinet/in_systm.h>
++#include <netinet/ip.h>
++#include <netinet/ip_var.h>
++#include <stdio.h>
++#include <pcap.h>
++#include "addrtoname.h"
++#include "interface.h"
++#include "path.h" 
++#include "scpsnp.h"
++
++void *malloc (int);
++
++#define MAX_NP_LENGTH  8191
++#define MIN_NP_LENGTH  3
++
++#define ADDR_FMTS	5
++static int addr_parse[5][3] = 
++	  /* { mask, capability bit, length } */
++	{{EXTENDED_ES, EES, 8},  /* Order is IMPORTANT HERE */
++	 {EXTENDED_PATH, EPATH, 4}, 
++	 {IPV6, IV6, 32},
++	 {BASIC_ES, BES, 4},
++	 {BASIC_PATH, BPATH, 2}};
++
++void np_if_print(u_char *user, const struct pcap_pkthdr *h, const u_char * p)
++{
++  struct ip fake_ip;
++  unsigned short shorttemp;
++  unsigned long longtemp, ctl_field, src_addr, dst_addr;
++  int i, length;
++  int caplen = h->caplen;
++  u_char *bp = (u_char *)p;
++
++  int hdr_len = MIN_NP_LEN;
++  int tpid;
++  int payload_len;      /* length of upper-layer's PDU */
++
++  unsigned int header_elements = 0;
++
++  ts_print(&h->ts);
++
++  if (caplen < MIN_NP_LEN) {
++    printf("[|scpsnp]");
++    goto out;
++  }
++  length = caplen;
++  packetp = bp;
++  snapend = bp + caplen;
++
++  /* May need to align */
++  if ((int)bp & (sizeof(long)-1)) {
++    static u_char *abuf;
++
++    if (abuf == 0)      /* betting that uninit'ed ptr is 0 */
++      abuf = (u_char *)malloc(snaplen);  /* get a reuseable buffer */
++    bcopy((char *)bp, (char *)abuf, min(length, snaplen));
++    snapend += abuf - (u_char *)bp;
++    packetp = abuf;
++    bp = (u_char *)abuf;
++  }
++printf("{SCPS-NP:");
++
++/*  Start to parse header */
++  shorttemp =((bp[0]&~SCPSNP_VPI_MASK) << 8) | bp[1];
++  if (caplen != shorttemp) {
++    printf("length mismatch! length = %d, header = %d\n ", caplen, shorttemp);
++    /* goto out; */
++  }
++  /* get TPID */
++  tpid = bp[2]>>4;		/* Top 4 bits of 3rd octet are TPID */
++  /* printf("TP:%X ", tpid); */
++  /* get Control Field */
++  /* If caplen < 5, must do control field an octet at a time */
++  ctl_field = (bp[2]&0xF)<<24;	/* First 4-bits of control field at top */
++
++  /* Check for 2nd octet of control field */
++  if (ctl_field & SECOND_CF_OCTET_PRESENT) {
++    ctl_field |= bp[3]<<16;	
++    hdr_len++;
++  }
++  /* Check for 3rd octet of control field */
++  if (ctl_field & THIRD_CF_OCTET_PRESENT) {
++    ctl_field |= bp[4]<<8;	
++    hdr_len++;
++  }
++
++  bp += hdr_len;	/* Advance pointer past control field */
++
++  /* printf("CF:%X ,", ctl_field);  */
++
++  longtemp = ctl_field & ADDRESS_MSK;	/* Figure out address formats */
++  for (i=0; i<ADDR_FMTS; i++) {
++    if ((longtemp & addr_parse[i][0]) == addr_parse[i][0]) {
++      header_elements |= addr_parse[i][1];
++      hdr_len += addr_parse[i][2];
++      break;
++    }
++  }
++  dst_addr = src_addr = 0;
++
++  switch (header_elements & ELEM_MASK) {
++    case BPATH:
++      dst_addr = bp[0]<<8 | bp[1];
++      bp += 2;
++      printf (" BP");
++      break;
++    case BES:
++      dst_addr = bp[0]<<8 | bp[1];
++      src_addr = bp[2]<<8 | bp[3];
++      bp += 4;
++      printf (" BE");
++      break;
++    case EPATH:
++      dst_addr = bp[0]<<24 | bp[1]<<16 | bp[2]<<8 | bp[3];
++      bp += 4;
++      printf (" EP");
++      break;
++    case EES:
++      dst_addr = bp[0]<<24 | bp[1]<<16 | bp[2]<<8 | bp[3];
++      src_addr = bp[4]<<24 | bp[5]<<16 | bp[6]<<8 | bp[7];
++      bp += 8;
++      printf (" EE");
++      break;
++    case IV6:
++      bp += 32;
++      printf (" I6");
++      break;
++    default:
++      break;
++  }
++
++  if (ctl_field & HC_MASK) {
++    header_elements |= HC;
++    hdr_len++;
++  }
++
++  if (ctl_field & TS_MASK) {
++    hdr_len += 3;		/* min ts len = 24 bits */
++    if ((ctl_field & TS_MASK) == TS_MASK) {
++      hdr_len++;
++      header_elements |= TS32;
++    } else header_elements |= TS24;
++  }
++
++  if (ctl_field & CK_MASK) {
++    hdr_len += 2;
++    header_elements |= CKSUM;
++  }
++
++  if (ctl_field & BQOS_MASK) {
++    hdr_len++;
++    header_elements |= BQOS;
++  }
++
++  if (ctl_field & EQOS_MASK) {
++    hdr_len++;
++    header_elements |= EQOS;
++  }
++
++  if (ctl_field & ID_MASK) header_elements |= ID;
++ 
++/* Print the header fields */ 
++/*  printf(" DA:%X SA:%X", dst_addr, src_addr); */
++
++  if (header_elements & HC) {
++    printf (" HC:%d", *bp++);
++  }
++
++  if (header_elements & TS24) {
++    longtemp = bp[0]<<16 | bp[1]<<8 | bp[2];
++    printf(" TS24:%X", (unsigned) longtemp);
++    bp += 3;
++  }
++
++  if (header_elements & TS32) {
++    longtemp = bp[0]<<24 | bp[1]<<16 | bp[2]<<8 | bp[3];
++    printf(" TS32:%X", (unsigned) longtemp);
++    bp += 4;
++  }
++
++  if (header_elements & BQOS) {
++    printf (" BQ:%X", *bp++);
++  }
++
++  if (header_elements & EQOS) {
++    printf (" EQ:%X", *bp++);
++  }
++
++  if (header_elements & ID) {
++    printf (" ID");
++  }
++  if (header_elements & CKSUM) {
++    printf (" CK");
++    /* printf (" CK:  %2X%2X", bp[0], bp[1]); */
++    bp += 2;
++  }
++
++  printf("} ");
++
++  fake_ip.ip_src.s_addr = src_addr;
++  fake_ip.ip_dst.s_addr = dst_addr;
++  payload_len = length - hdr_len;
++  
++  /* May need to align */
++  if ((int)bp & (sizeof(long)-1)) {
++    static u_char *abuf;
++
++    if (abuf == 0)      /* betting that uninit'ed ptr is 0 */
++      abuf = (u_char *)malloc(snaplen);  /* get a reuseable buffer */
++    bcopy((char *)bp, (char *)abuf, min(payload_len, snaplen));
++    snapend += abuf - (u_char *)bp;
++    packetp = abuf;
++    bp = (u_char *)abuf;
++  } else {
++    packetp = bp;
++  }
++
++  switch (tpid) {
++    case SCMP:
++      printf("<SCMP>");
++      break;
++    case SCPSCTP:
++      tcp_compressed_print((u_char *)bp, payload_len, (u_char *)&fake_ip);
++      break;
++    case SCPSUDP:
++      udp_print((u_char *)bp, payload_len, (u_char *) &fake_ip);
++      break;
++    case SCPSTP:
++      tcp_print((u_char *)bp, payload_len, (u_char *) &fake_ip);
++      break;
++    case SCPSSP:
++      sp_print (bp, payload_len);
++      break;
++    default:
++      printf("<TPID:%X?> ", tpid);
++      break;
++  }
++
++  if (xflag) {
++    default_print(p, length);
++  }
++
++out:
++  putchar('\n');
++}
++
++
++void
++scpsnp_print(register const u_char *bp, register int length)
++{
++  struct ip fake_ip;
++  unsigned short shorttemp;
++  unsigned long longtemp, ctl_field, src_addr, dst_addr;
++  int i;
++  int caplen = length;
++  int hdr_len = MIN_NP_LEN;
++  int tpid;
++  int payload_len;      /* length of upper-layer's PDU */
++  int n;
++
++  unsigned int header_elements = 0;
++
++  if (caplen < MIN_NP_LEN) {
++    printf("[|scpsnp]");
++    goto out;
++  }
++
++  packetp = bp;
++  snapend = bp + caplen;
++
++  /* May need to align */
++  if ((int)bp & (sizeof(long)-1)) {
++    static u_char *abuf;
++
++    if (abuf == 0)      /* betting that uninit'ed ptr is 0 */
++      abuf = (u_char *)malloc(snaplen);  /* get a reuseable buffer */
++    bcopy((char *)bp, (char *)abuf, min(length, snaplen));
++    snapend += abuf - (u_char *)bp;
++    packetp = abuf;
++    bp = (u_char *)abuf;
++  }
++printf("{SCPS-NP:");
++
++/*  Start to parse header */
++  shorttemp =((bp[0]&~SCPSNP_VPI_MASK) << 8) | bp[1];
++  if (caplen != shorttemp) {
++    printf("length mismatch! length = %d, header = %d\n ", caplen, shorttemp);
++    /* goto out; */
++  }
++  /* get TPID */
++  tpid = bp[2]>>4;		/* Top 4 bits of 3rd octet are TPID */
++  /* printf("TP:%X ", tpid); */
++  /* get Control Field */
++  /* If caplen < 5, must do control field an octet at a time */
++  ctl_field = (bp[2]&0xF)<<24;	/* First 4-bits of control field at top */
++
++  /* Check for 2nd octet of control field */
++  if (ctl_field & SECOND_CF_OCTET_PRESENT) {
++    ctl_field |= bp[3]<<16;	
++    hdr_len++;
++  }
++  /* Check for 3rd octet of control field */
++  if (ctl_field & THIRD_CF_OCTET_PRESENT) {
++    ctl_field |= bp[4]<<8;	
++    hdr_len++;
++  }
++
++  bp += hdr_len;	/* Advance pointer past control field */
++
++  /* printf("CF:%X ,", ctl_field);  */
++
++  longtemp = ctl_field & ADDRESS_MSK;	/* Figure out address formats */
++  for (i=0; i<ADDR_FMTS; i++) {
++    if ((longtemp & addr_parse[i][0]) == addr_parse[i][0]) {
++      header_elements |= addr_parse[i][1];
++      hdr_len += addr_parse[i][2];
++      break;
++    }
++  }
++  dst_addr = src_addr = 0;
++
++  switch (header_elements & ELEM_MASK) {
++    case BPATH:
++      dst_addr = bp[0]<<8 | bp[1];
++      bp += 2;
++      printf (" BP");
++      break;
++    case BES:
++      dst_addr = bp[0]<<8 | bp[1];
++      src_addr = bp[2]<<8 | bp[3];
++      bp += 4;
++      printf (" BE");
++      break;
++    case EPATH:
++      dst_addr = bp[0]<<24 | bp[1]<<16 | bp[2]<<8 | bp[3];
++      bp += 4;
++      printf (" EP");
++      break;
++    case EES:
++      dst_addr = bp[0]<<24 | bp[1]<<16 | bp[2]<<8 | bp[3];
++      src_addr = bp[4]<<24 | bp[5]<<16 | bp[6]<<8 | bp[7];
++      bp += 8;
++      printf (" EE");
++      break;
++    case IV6:
++      bp += 32;
++      printf (" I6");
++      break;
++    default:
++      break;
++  }
++
++  if (ctl_field & HC_MASK) {
++    header_elements |= HC;
++    hdr_len++;
++  }
++
++  if (ctl_field & TS_MASK) {
++    hdr_len += 3;		/* min ts len = 24 bits */
++    if ((ctl_field & TS_MASK) == TS_MASK) {
++      hdr_len++;
++      header_elements |= TS32;
++    } else header_elements |= TS24;
++  }
++
++  if (ctl_field & CK_MASK) {
++    hdr_len += 2;
++    header_elements |= CKSUM;
++  }
++
++  if (ctl_field & BQOS_MASK) {
++    hdr_len++;
++    header_elements |= BQOS;
++  }
++
++  if (ctl_field & EQOS_MASK) {
++    hdr_len++;
++    header_elements |= EQOS;
++  }
++
++  if (ctl_field & ID_MASK) header_elements |= ID;
++ 
++/* Print the header fields */ 
++/*  printf(" DA:%X SA:%X", dst_addr, src_addr); */
++
++  if (header_elements & HC) {
++    printf (" HC:%d", *bp++);
++  }
++
++  if (header_elements & TS24) {
++    longtemp = bp[0]<<16 | bp[1]<<8 | bp[2];
++    printf(" TS24:%X", (unsigned) longtemp);
++    bp += 3;
++  }
++
++  if (header_elements & TS32) {
++    longtemp = bp[0]<<24 | bp[1]<<16 | bp[2]<<8 | bp[3];
++    printf(" TS32:%X", (unsigned) longtemp);
++    bp += 4;
++  }
++
++  if (header_elements & BQOS) {
++    printf (" BQ:%X", *bp++);
++  }
++
++  if (header_elements & EQOS) {
++    printf (" EQ:%X", *bp++);
++  }
++
++  if (header_elements & ID) {
++    printf (" ID");
++  }
++  if (header_elements & CKSUM) {
++    /* printf (" CK:  %2X%2X", bp[0], bp[1]); */
++    printf (" CK"); 
++    bp += 2;
++  }
++
++  printf(" HL:%d} ", hdr_len);
++
++  fake_ip.ip_src.s_addr = src_addr;
++  fake_ip.ip_dst.s_addr = dst_addr;
++  payload_len = length - hdr_len;
++  
++  /* May need to align */
++  if ((int)bp & (sizeof(long)-1)) {
++    static u_char *abuf;
++
++    if (abuf == 0)      /* betting that uninit'ed ptr is 0 */
++      abuf = (u_char *)malloc(snaplen);  /* get a reuseable buffer */
++    bcopy((char *)bp, (char *)abuf, min(payload_len, snaplen));
++    snapend += abuf - (u_char *)bp;
++    packetp = abuf;
++    bp = (u_char *)abuf;
++  } else {
++    packetp = bp;
++  }
++
++  switch (tpid) {
++    case SCMP:
++      printf("<SCMP>");
++      break;
++    case SCPSCTP:
++      tcp_compressed_print((u_char *)bp, payload_len, (u_char *)&fake_ip);
++      break;
++    case SCPSUDP:
++      udp_print((u_char *)bp, payload_len, (u_char *) &fake_ip);
++      break;
++    case SCPSTP:
++      tcp_print((u_char *)bp, payload_len, (u_char *) &fake_ip);
++      break;
++    case SCPSSP:
++      /* printf ("<SCPS SP>"); */
++      /* sp_print (bp, payload_len); */
++      printf ("%s > %s: ",
++        ipaddr_string(&(fake_ip.ip_src)),
++        ipaddr_string(&(fake_ip.ip_dst)));
++      printf("SCPS_SP[%d, 0x%X, %d] <", *bp, *(bp+1), length);
++      for (n = (int)(bp+2); n<(int)(bp+38); n+=2) /*PDF XXX */
++        {
++          printf ("%X%X ", *(u_char *)n, *(u_char *)(n+1));
++        }
++      printf("> ");
++      break;
++    default:
++      printf("<TPID:%X?> ", tpid);
++      break;
++  }
++return;
++
++out:
++  putchar('\n');
++}
++
+diff -Naur tcpdump-3.4/print-scpssp.c tcpdump-3.4.scps/print-scpssp.c
+--- tcpdump-3.4/print-scpssp.c	Thu Jan  1 00:00:00 1970
++++ tcpdump-3.4.scps/print-scpssp.c	Thu Nov 20 23:27:27 1997
+@@ -0,0 +1,95 @@
++/*
++ * Copyright (c) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996
++ *	The Regents of the University of California.  All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that: (1) source code distributions
++ * retain the above copyright notice and this paragraph in its entirety, (2)
++ * distributions including binary code include the above copyright notice and
++ * this paragraph in its entirety in the documentation or other materials
++ * provided with the distribution, and (3) all advertising materials mentioning
++ * features or use of this software display the following acknowledgement:
++ * ``This product includes software developed by the University of California,
++ * Lawrence Berkeley Laboratory and its contributors.'' Neither the name of
++ * the University nor the names of its contributors may be used to endorse
++ * or promote products derived from this software without specific prior
++ * written permission.
++ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
++ */
++
++ /*
++    SCPS project - print SCPS-SP header and a few octets of transport
++ */
++
++#ifndef lint
++static const char rcsid[] =
++    "@(#) $Header: print-scpssp.c,v 1.0 97/10/30 ";
++#endif
++
++#include <sys/param.h>
++#include <sys/time.h>
++#include <sys/socket.h>
++
++#include <netinet/in.h>
++#include <netinet/in_systm.h>
++#include <netinet/ip.h>
++#include <netinet/ip_var.h>
++#include <netinet/tcp.h>
++#include <netinet/tcpip.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++
++#include "interface.h"
++#include "addrtoname.h"
++#include "extract.h"
++
++/* Compatibility */
++void
++sp_print(register const u_char *bp, register u_int length,
++	  register const u_char *bp2)
++{
++	u_int proto;
++	u_int flags;
++
++	proto = (u_int)*bp++;
++	flags = (u_int)*bp++;
++	if (length > 2)
++	  {
++	    length -= 2;
++            switch (proto) 
++	    {
++#ifndef IPPROTO_SCPSTP
++#define IPPROTO_SCPSTP 106
++#endif
++                case IPPROTO_SCPSTP:
++                case IPPROTO_TCP:
++                        tcp_print(bp, length, (const u_char *)bp2);
++                        break;
++#ifndef IPPROTO_SCPSUDP
++#define IPPROTO_SCPSUDP 117
++#endif  IPPROTO_SCPSUDP
++                case IPPROTO_SCPSUDP:
++                case IPPROTO_UDP:
++                        udp_print(bp, length, (const u_char *)bp2);
++                        break;
++#ifndef IPPROTO_SCPSCOMPRESS
++#define IPPROTO_SCPSCOMPRESS 105
++#endif
++                case IPPROTO_SCPSCOMPRESS:    /* SCPS-TP header compression */
++                        tcp_compressed_print(bp, length, (const u_char *)bp2);
++                        break;
++		
++		default:
++			(void) printf("SP Unknown proto: ");
++			break;
++
++	      }
++	  }
++
++	(void)printf(" SP[%d,0x%x] ", proto, flags);
++}
+diff -Naur tcpdump-3.4/print-tcp.c tcpdump-3.4.scps/print-tcp.c
+--- tcpdump-3.4/print-tcp.c	Sun Jun 15 20:20:28 1997
++++ tcpdump-3.4.scps/print-tcp.c	Thu Nov 20 23:23:41 1997
+@@ -19,6 +19,12 @@
+  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+  */
+ 
++ /*
++    Modified for SCPS project to decode the COMPRESSOK, SNACK and SNACKOK
++    options.  Gregory J. Miller, The MITRE Corporation.
++    8/16/95
++ */
++
+ #ifndef lint
+ static const char rcsid[] =
+     "@(#) $Header: /home/cvsroot/SCPS_RI/tcpdump/tcpdump-3.4.scps.diffs,v 1.2 1999/03/03 18:14:15 kscott Exp $ (LBL)";
+@@ -65,6 +71,12 @@
+ #ifndef TCPOPT_TIMESTAMP
+ #define TCPOPT_TIMESTAMP	8	/* timestamps (rfc1323) */
+ #endif
++#ifndef TCPOPT_EOR
++#define TCPOPT_EOR              22      /* SCPS end of record */
++#endif
++#ifndef TCPOPT_COMPRESSOK
++#define TCPOPT_COMPRESSOK       10      /* header compression ok (SCPS) */
++#endif
+ #ifndef TCPOPT_CC
+ #define TCPOPT_CC		11	/* T/TCP CC options (rfc1644) */
+ #endif
+@@ -74,6 +86,19 @@
+ #ifndef TCPOPT_CCECHO
+ #define TCPOPT_CCECHO		13	/* T/TCP CC options (rfc1644) */
+ #endif
++#ifndef TCPOPT_SNACKOK
++#define TCPOPT_SNACKOK          14  /* selective nack ok (SCPS) */
++#endif
++#ifndef TCPOPT_SNACK
++#define TCPOPT_SNACK            21  /* selective nack (SCPS) */
++#endif
++#ifndef TCPOPT_BETSOK
++#define TCPOPT_BETSOK           16  /* Best-Effort Transport Service (SCPS) */
++#endif
++#ifndef TCPOPT_SCPS
++#define TCPOPT_SCPS             20  /* Omnibus SCPS capabilities option */
++#endif
++
+ 
+ struct tha {
+ 	struct in_addr src;
+@@ -323,6 +348,50 @@
+ 				(void)printf(" %u", EXTRACT_32BITS(cp));
+ 				break;
+ 
++                        case TCPOPT_SCPS:
++                                (void)printf ("[SCPS");
++                                datalen=2;
++                                LENCHECK(datalen);
++                                i = (int)(*(cp));
++                                if (i & 0x80)
++                                  (void)printf(" BETSOK");
++                                if (i & 0x40)
++                                  (void)printf(" SNACK_shortform_OK");
++                                if (i & 0x20)
++                                  (void)printf(" SNACK_longform_OK");
++                                if (i & 0x10)
++                                    (void)printf(" CompressOK:%u", *(cp+1));
++                                if (i & 0x08)
++                                  (void)printf(" NLTSOK");
++                                (void)printf("]");
++                                break;
++
++                        case TCPOPT_COMPRESSOK:
++                                datalen = 1;
++                                LENCHECK(1);
++                                (void)printf("compressOK %d", *cp);
++                                break;
++
++                        case TCPOPT_EOR:
++                                (void)printf("EOR");
++                                break;
++
++                        case TCPOPT_SNACKOK:
++                                (void)printf("snackOK");
++                                break;
++
++                        case TCPOPT_SNACK:
++                                datalen = 4;
++                                LENCHECK(datalen);
++                                (void)printf("snack %u@%u",
++                                  EXTRACT_16BITS(cp+2),
++                                  EXTRACT_16BITS(cp));
++                                break;
++
++                        case TCPOPT_BETSOK:
++                                (void)printf("BETS-OK");
++                                break;
++
+ 			default:
+ 				(void)printf("opt-%d:", opt);
+ 				datalen = len - 2;
+@@ -360,4 +429,222 @@
+ 	if (ch != '\0')
+ 		putchar('>');
+ }
++
++/* define constants for compressed TCP */
++#define MORE 0x8000     /* another octet of control flags follows
++                           this one */
++#define TIME 0x4000     /* the SCPS-Echo reply timestamp is included */
++#define RECORD 0x2000   /* the SCPS TCP record marker is included */
++#define PUSH 0x1000     /* the PUSH flag from the TCP header */
++#define S1   0x0800     /* A 16-bit sequence number change is being
++                           reported.  Sequence number is the least-
++                           significant 16 bits of the 32-bit sequence
++                           number.  Mutex with S2.*/
++#define A2   0x0400     /* A 32-bit acknowledgment number change is being
++                           reported.  Mutex with A1.  */
++#define A1   0x0200     /* A 16-bit acknowledgment number change is being
++                           reported.  Mutex with A2.  */
++#define WIN  0x0100     /* A window update is being reported */
++/* Octet 2 */
++#define NOTACK 0x80     /* ACK flag NOT set in TCP header */
++#define OPTS 0x40       /* Uncompressed TCP options follow the remainder
++                           of the compressed TCP header elements */
++#define PAD  0x20        /* Pad octet is present */
++#define URG  0x10       /* The 16-bit urgent flag is included */
++#define RST  0x08       /* The RST flag from the TCP header */
++#define SYN  0x04       /* The SYN flag from the TCP header */
++#define FIN  0x02       /* The FIN flag from the TCP header */
++#define S2   0x01       /* A 32-bit sequence number change is being
++                           reported.  Mutex with S1.  */
++
++void
++tcp_compressed_print(const u_char *bp, register u_int length,
++          register const u_char *bp2)
++{
++  register const struct ip *ip;
++  register const u_char *hp = bp;
++  register int hdr_len = 2;  /* init to min length compressed header */
++  u_short win = 0;
++  u_short urp = 0;
++  u_int32_t seq = 0;
++  u_int32_t ack = 0;
++  u_short changes;
++  u_char conn_id;
++  int uncomp_olen = 0;
++  int close = 0;
++  int print_s1 = 0;
++
++  ip = (struct ip *)bp2;
++
++  TTEST2 (bp, 2);       /* Check for at least 2 bytes of compressed hdr */
++#ifdef NOT_DEFINED
++  if ((const u_char *)(bp + 1)  > snapend) {
++    printf("[|tcp]");
++    return;
++  }
++  if (length < 2) {           /* smallest possible compressed header */
++    (void)printf("truncated-tcp %d", length);
++    return;
++  }
++#endif NOT_DEFINED
++  conn_id = *hp++;                                  /* connection id */
++
++  changes = (u_short) (*hp++) << 8;       /* get first byte of field */
++  if (changes & MORE) {              /* get 2nd byte if there is one */
++    changes += (u_short) * hp++;
++    hdr_len++;
++  }
++
++  (void)printf("%s > %s.%d: ", ipaddr_string(&ip->ip_src),
++               ipaddr_string(&ip->ip_dst), conn_id);
++ 
++  if (qflag) {
++    (void)printf("tcp ");
++    return;
++  }
++
++  if (changes & (FIN|RST|PUSH)) {
++    if (changes & FIN)            /* note: SYNs are never compressed */
++      putchar('F');
++    if (changes & RST)
++      putchar('R');
++    if (changes & PUSH)
++      putchar('P');
++  } else
++    putchar('.');
++ 
++  if (changes & URG) {
++    urp = EXTRACT_16BITS(hp);
++    hp += 2;
++    hdr_len += 2;
++  }
++
++  if (changes & A2) {
++    win = EXTRACT_16BITS(hp);
++    hp += 2;
++    ack = EXTRACT_32BITS(hp);
++    hp += 4;
++    hdr_len += 6;
++  }
++
++  if (changes & S1) {
++    seq = EXTRACT_32BITS(hp);
++    hp += 4;
++    hdr_len += 4;
++  }
++
++  if (changes & TIME)              /* compute the rest of header length */
++    hdr_len += 8;
++  if (changes & OPTS) {
++    if (changes & TIME)
++      uncomp_olen = (int) hp[8];   /* length of uncompressed options */
++    else
++      uncomp_olen = (int) *hp;
++    hdr_len += uncomp_olen+1;      /* add one for length field itself */
++  }
++  length -= (hdr_len + 2);         /* the 2 is for the checksum */
++
++  /* (void) printf(" hl: %d", hdr_len+2); */
++
++  if (changes & S1)
++    {
++      if (length > 0)
++        (void)printf(" %u:%u(%d)", seq, seq + length, length);
++      else
++        print_s1 = 1;
++    }
++ 
++  if (changes & A2) {
++    (void)printf(" ack %u", ack);
++    (void)printf(" win %d", win);
++  }
++
++  if (changes & URG)
++    (void)printf(" urg %d", urp);
++ 
++  if (changes & RECORD)
++    {
++      (void)printf(" <RB");
++      close = 1;
++    }
++ 
++  if (changes & TIME) {
++    if (changes & RECORD)
++      (void)printf(",");
++    else
++      (void)printf(" <");
++    (void)printf("timestamp %lu %lu",
++                 EXTRACT_32BITS (hp), EXTRACT_32BITS (hp+4));
++    hp += 8;
++    close = 1;
++  }
++
++        /*
++         * Handle any uncompressed options.
++         */
++  if (changes & OPTS) {
++    int i;
++    char ch;
++
++    close = 1;  /* Print the closing angle bracket */
++ 
++    hp++;   /* skip over uncompressed option length */
++    if (changes & (RECORD|TIME))
++      ch = ',';
++    else {
++      ch = '<';
++      putchar(' ');
++    }
++    while (--uncomp_olen >= 0) {
++      putchar(ch);
++      switch (*hp++) {
++      case TCPOPT_EOL:
++        (void)printf("eol");
++        break;
++      case TCPOPT_NOP:
++        (void)printf("nop");
++        break;
++      case TCPOPT_ECHO:
++        {
++          (void)printf("echo %u",
++                       EXTRACT_32BITS(hp+1));
++          if (*hp != 6)
++            (void)printf("[len %d]", *hp);
++          hp += 5;
++          uncomp_olen -= 5;
++          break;
++        }
++      case TCPOPT_ECHOREPLY:
++        {
++          (void)printf("echoreply %u",
++                       EXTRACT_32BITS (hp + 1));
++          if (*hp != 6)
++            (void)printf("[len %d]", *hp);
++          hp += 5;
++          uncomp_olen -= 5;
++          break;
++        }
++      case TCPOPT_SNACK:
++        (void)printf("snack: ");
++        if (*hp < 6)
++          (void)printf("[len %d]", *hp);
++        (void)printf("%u@%u", EXTRACT_16BITS(hp+2), EXTRACT_16BITS(hp));
++        uncomp_olen -= (*hp - 1);
++        hp += (*hp - 1);
++        break;
++      default:
++        (void)printf("opt-%d:", hp[-1]);
++        for (i = *hp++ - 2, uncomp_olen -= i + 1; i > 0; --i)
++          (void)printf("%02x", *hp++);
++        break;
++      }
++      ch = ',';
++    }
++    close = 1;
++  }
++  if (close) putchar('>');
++  if (print_s1) (void) printf(" S1:%u", seq);
++  (void) printf(" hl: %d", hdr_len+2);
++}
++
+ 
+diff -Naur tcpdump-3.4/print-udp.c tcpdump-3.4.scps/print-udp.c
+--- tcpdump-3.4/print-udp.c	Mon Jul 28 04:58:57 1997
++++ tcpdump-3.4.scps/print-udp.c	Thu Nov 20 23:11:13 1997
+@@ -374,6 +374,19 @@
+ 			while (cp < ep)
+ 				cp = rtcp_print(cp, ep);
+ 			break;
++
++                case PT_SCPS:           /* IP encapsulated in UDP for SCPS */
++                        (void)printf("%s.%s > %s.%s udp>> ",
++                                ipaddr_string(&ip->ip_src),
++                                udpport_string(sport),
++                                ipaddr_string(&ip->ip_dst),
++                                udpport_string(dport));
++                        if (*(u_char *)(up+1) == 0x45)
++                          ip_print((u_char *)(up + 1), length);
++                        else
++                          scpsnp_print ((u_char *)(up+1), length);
++                        break;
++
+ 		}
+ 		return;
+ 	}
+diff -Naur tcpdump-3.4/scpsnp.h tcpdump-3.4.scps/scpsnp.h
+--- tcpdump-3.4/scpsnp.h	Thu Jan  1 00:00:00 1970
++++ tcpdump-3.4.scps/scpsnp.h	Thu Nov 20 23:26:49 1997
+@@ -0,0 +1,80 @@
++/* Header file for print-scpsnp file. */
++
++/* SCPS Protocol IDs */
++#define NP      0       /*  SCPS Network Protocol */
++#define SCMP    1       /*  SCPS Control Message Protocol */
++#define TBD2    2
++#define TBD3    3
++#define SCPSCTP 4       /* SCPS Compressed TCP headers */
++#define SCPSUDP 5       /* SCPS User Datagram Protocol */
++#define SCPSTP  6       /* SCPS TCP */
++#define SCPSSP  8       /* SCPS Security Protocol */
++#define TBD7    7
++#define SP3     9
++#define IPV6AUTH 10
++#define IPV6ESP 11
++
++
++
++
++#define MIN_NP_LEN	3
++
++#define SCPSNP_VPI	0x80
++#define SCPSNP_VPI_MASK 0xE0
++
++#define CKSUM		0x1
++#define ELEM_MASK	0x3E
++#define BPATH		0x2
++#define BES		0x4
++#define EPATH		0x8
++#define EES		0x10
++#define IV6		0x20
++#define HC		0x40
++#define TS24		0x80
++#define TS32		0x100
++#define BQOS		0x200
++#define EQOS		0x400
++#define ID		0x800
++
++#define SECOND_CF_OCTET_PRESENT 	0x08000000
++#define THIRD_CF_OCTET_PRESENT 		0x00800000
++
++/* Masks for parsing address formats */
++#define ADDRESS_MSK	0x02424000
++#define BASIC_PATH	0x02000000
++#define EXTENDED_PATH   0x02020000
++#define BASIC_ES	0x02400000
++#define EXTENDED_ES	0x02420000
++#define IPV6		0x02404000
++
++/* Hop Count Mask */
++#define HC_MASK		0x00200000
++
++/* Timestamp Mask */
++#define TS_MASK		0x00180000
++
++/* Checksum Mask */
++#define CK_MASK		0x01000000
++
++/* BQOS Mask */
++#define BQOS_MASK	0x00040000
++
++/* EQOS MASK */
++#define EQOS_MASK	0x00002000
++
++/* Intermediate Delivery Mask */
++#define ID_MASK		0x00001000
++
++/* Masks for figuring out header length */
++	/* First octet of control field */
++		/* If this, hdr len = 3 */
++#define NO_FIELDS	0
++		/* If either of these, hdr len = 5 */
++#define	BASIC_DA	0x2
++#define CKSM_ONLY	0x1
++		/* If this, hdr len = 7 */
++#define B_DA_CKSUM	0x3
++		/* There's a 2nd octet of control info */
++#define M_CK		0x9
++#define M_DA		0xA
++#define M_CK_DA		0xB
+diff -Naur tcpdump-3.4/tcpdump.c tcpdump-3.4.scps/tcpdump.c
+--- tcpdump-3.4/tcpdump.c	Fri Jun 13 20:10:44 1997
++++ tcpdump-3.4.scps/tcpdump.c	Thu Nov 20 23:13:19 1997
+@@ -239,6 +239,8 @@
+ 				packettype = PT_RTP;
+ 			else if (strcasecmp(optarg, "rtcp") == 0)
+ 				packettype = PT_RTCP;
++/* for SCPS over UDP */ else if (strcasecmp(optarg, "scps") == 0)
++                                packettype = PT_SCPS;
+ 			else
+ 				error("unknown packet type `%s'", optarg);
+ 			break;

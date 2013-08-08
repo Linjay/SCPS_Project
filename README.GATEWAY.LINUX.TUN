@@ -1,0 +1,95 @@
+README FILE FOR SCPS GATEWAY REFERENCE IMPLEMENTATION - NATIVE LINUX
+support.
+
+Thanks to several folks we now have the SCPS gateway working with
+a LINUX 2.4 Kernel.  This particular port uses a combination of the
+tun interface, the mangle table from iptables, and the use of
+multiple routing tables.  
+
+The following steps are required before configuring the SCPS gateway to
+work under linux.
+
+===================================================================
+Section 1  Obtaining and installing supporting software. Note the depending on
+your version of linux, they may already be present on your system.
+
+Need to install the tun/tap modules from http://vtun.sourceforge.net/tun
+
+Need to install iproute2 from ftp://ftp.sunet.se/pub/Linux/ip-routing
+
+May need to install latest iptables from http://netfilter.samba.org
+
+May need to install latest kernel from ftp://ftp.kernel.org - I am
+using 2.4.10 with no problem.
+
+Also Verify the following kernel configure/compiling options are  enabled
+
+            UNDER NETWORKING OPTIONS
+
+Kernal/User network socket
+Netlink packet filtering
+
+Advanved Router
+  IP policy routing
+    IP use netfilter MARK value as routing key
+
+IP Netfilter Configuration
+  IP tables support
+    netfilter MARK match support
+
+  Packet mangling
+    MARK target support
+
+            UNDER NETWORKING DEVICE
+
+Universal TUN/TAP device dirver support.
+
+===================================================================
+Section 2  Building the SCPS Gateway
+
+The next step is to configure the makefiles for the SCPS Gateway.
+
+You must configure the makefiles for the SCPS application and the main
+SCPS source directory.  There are scripts to assist you in doing this.
+
+cd ../apps
+
+Enter the command
+
+./configure
+
+A message indicating that a make file is being created should be printed.
+
+Now, cd to the "source" directory:
+
+cd ../source
+
+Enter the command
+
+./configure --gateway=yes --tun=yes
+
+expect to see a message indicating that the makefile is being created.
+
+Finally, change to the top-level (SCPS) directory:
+
+cd ..
+
+And build the configuration by entering the following command:
+
+make clean
+make
+
+
+===================================================================
+Section 3  Modifing the rfile
+
+The rfile required adding two additional directives to support
+the tun interface. These directives are AIF_TUN_NAME and
+BIF_TUN_NAME need to be set their corresponding tun interfaces.
+For example
+
+AIF_TUN_NAME	tun0
+BIF_TUN_NAME	tun1
+C_TUN_NAME	tun2
+
+Well that's about it...

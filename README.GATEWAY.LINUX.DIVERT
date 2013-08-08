@@ -1,0 +1,40 @@
+README FILE FOR SCPS GATEWAY REFERENCE IMPLEMENTATION FOR THE LINUX
+OPERATING SYSTEM.  FOR THE PERFERRED METHOD PLEASE SEE
+README.GATEWAY.TUN|TAP
+
+NOTE:  The SCPS Gateway was developed to used the divert socket
+functionality, originally developed for the FreeBSD Operating System.
+Recently folks at http://www.anr.mcnc.org/~divert/index.shtml have
+ported the divert socket to various versions of the LINUX kernel.
+Their web site contains pointer to both a complete linux source tree
+and to patch files to augment your kernel with the divert functionality.
+Please see their web site for source code and how to install it.
+
+If you have any question or problems with divert, please see their
+site.  They do have a divert for linux mailing list and do their
+best to answer questions as soon as possible.  Their understanding
+of divert for linux is much greater than ours (since they wrote it :-o )
+so please contact them if you have problems with divert itself.
+
+In addition to configured divert, you have to make one additional change
+to the linux kenrel before recompiling.  In the file net/ipv4/route.c
+at approxiamately line 1460.  You need to comment out the lines
+
+                if (dev_out == NULL)
+                        return -EINVAL;
+
+or enclosing then with ifdef like
+
+#ifdef NOCOMPILE
+                if (dev_out == NULL)
+                        return -EINVAL;
+#endif /* NOCOMPILE */
+
+After you have recompiled and rebooted the kenrel see sections 2 through
+4 in README.GATEWAY for instructions on how to configure and run the
+gateway software.
+
+Also note the SCPS Gateway for LINUX have just recently been ported
+so some functionalities may not be fully tested.  If you have any
+problems with these areas don't hestate to contact us and we
+will try and help you out.

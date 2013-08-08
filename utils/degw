@@ -1,0 +1,40 @@
+#!/bin/csh
+
+
+cd ../
+cd ../
+cp -r SCPS_RI SCPS_RI_dist
+cd SCPS_RI_dist
+
+foreach filename (*/*.[ch])
+	echo degatewaying filename... $filename
+
+	if (-f $filename.orig) then
+		echo $filename.orig already exist
+		echo halting de-gatewaying process
+
+
+                echo backing out changes... 
+                foreach filename (*/*.[ch])
+			if (-f $filename.orig) then
+				mv -f $filename.orig filename
+			endif
+		end
+		exit 0
+	endif
+	
+	cp $filename $filename.orig
+	awk -f ./utils/degw.awk IF=$filename < $filename > tmp
+	rm $filename
+	mv tmp $filename
+
+end
+
+foreach filename (*/*.[ch])
+        if (-f $filename.orig) then
+                rm -f $filename.orig
+	endif
+end
+
+rm -f utils/degw*
+rm -f README.GATEWAY

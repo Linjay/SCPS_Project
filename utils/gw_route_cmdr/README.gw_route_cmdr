@@ -1,0 +1,134 @@
+gw_route_cmdr is a simple way to add/delete/modify internal SCPS GATEWAY
+routing table.  It is designed to be command line driven so it could be
+a front end for a more complex application and it also can be run remotely.
+The following are some terse instructions on how to use and configure this
+feature
+
+
+FIRST STEP - Configuring the gateway.
+
+To use the this feature you first need to configure the gateway with two
+additional options.
+
+	--gateway_router=yes --scps_ri_console=yes
+
+The first option allows the gateway to have more than the simple default
+routing entry whose characteristics are specified in the gateway's rfile. 
+The second option create the additional interface for the SCPS RI to
+communicate with this external applications.
+
+Therefore to configure the SCPS gateway try something like this following
+
+cd source
+./configure --gateway=yes --gateway_router=yes --scps_ri_console=yes
+cd ../apps
+./configure
+cd ../
+make clean;make
+
+
+SECOND STEP - Compiling the gw route commander
+
+cd utils/gw_route_cmdr
+
+make
+
+If you are compiling this under LINUX you need to change the following
+line in the Makefile
+
+SYMTAB = -g -Wall
+      to
+SYMTAB = -g -Wall -DLINUX
+
+
+Hey, now that was easy.
+
+
+THIRD STEP -  Some background on the routing structures.
+
+First some applogies, I must admit it, it is a little but kludgy, but
+it works.
+
+Initially there are two routes that are created by reading the gateway's
+resource file.  These are essentially the default routes for each
+'interface' (i.e., terrestrial or satellite) on the gateway.  The
+first entry is assocated with AIF and the second enter is associated
+with BIF.
+
+You can then add/delete/modify additions routes with this program.  
+Technially you an delete the default route, but I've never done that
+before; you can probably modify them though....
+
+To add a route you must specify fields which will be used during the lookup
+process.  Unlike typical routing tables that only route based on the
+destination IP address/netmask  the SCPS routing table extends this to
+include a source IP address/netmask as well as source and destination port
+number ranges.  From most specify to least specific the order is
+
+	src/dst IP address and src/dst TCP port number
+        dst IP address and dst TCP port number
+	src/dst IP address
+	dst IP address
+	default
+
+Each route is identified to the user by a route id.  This will be returned
+to the user for adding routes; shown to the user for listing routes; and
+used to identify specific routes for the deleting and modifying routes.
+
+Each route has the following attributes which the user may specify.
+
+	sending MTU - measured in bytes (default is 1500 bytes)
+	receivng MTU - measured in bytes (default in 1500 bytes)
+	congestion control method
+		0 -  pure rate control
+		1 -  VJ congestion control (default)
+		2 -  Vegas congestion control
+	maximum rate - measured in bps (default is 2Mbps)
+
+LAST STEP  - now for the syntax (again I aplogize in advanced)
+
+Usage: gw_route_cmdr \n\
+        -A ##   Command: (A)dd (D)elete (G)et (M)odify (L)ist \n\
+        -G ##   Set the IP address of the gateway\n\
+        -S ##   Set the source IP address\n\
+        -s ##   Set the source netmask\n\
+        -D ##   Set the destination IP address\n\
+        -d ##   Set the destination netmask\n\
+        -X ##   Set the source transport low port number\n\
+        -x ##   Set the source transport high port number\n\
+        -C ##   Set the destination transport low port number\n\
+        -c ##   Set the destination transport high port number\n\
+        -R ##   Set the rate \n\  
+        -M ##   Set the receiving MTU \n\
+        -m ##   Set the sending MTU \n\
+        -r ##   Set the route id\n\
+        -p ##   Set the protocol id\n\
+        -T ##   Set the congestion control algorithm\n\
+
+
+examples
+
+Let say everying destinated to 10.1.1.1 should be allow to have
+1 Mbps to itself.  The gateway IP address is 10.10.10.10 threfore
+
+gw_route_cmdr -A A -G 10.10.10.10 -D 10.1.1.1 -R 1000000 -T 0
+
+should do the trick.  Now to display the routing table for
+ 10.10.10.10 try the following
+
+gw_route_cmdr -A L -G 10.10.10.10
+
+Oops we make a mistake, 10.10.10.10 is the president of the company
+so he should be 1Kbps.  Therefore
+
+gw_route_cmdr -A M -r 2 -R 1000
+
+should do the trick.  The routing entry 2 is return from the route add and
+is also displayed from the list command. Now, Mr. Pres find out what you
+have done so he fires you and needs to delete this entry.  Therefore
+
+gw_route_cmdr -A d -r 2
+
+
+Well that's about it. Don't forget that you probably want to do this for
+peer as well.

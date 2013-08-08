@@ -1,0 +1,78 @@
+
+README FILE FOR SCPS REFERENCE IMPLEMENTATION
+
+NOTE:  It is strongly recommended that you print the documents
+in the docs subdirectory and read them before proceeding.  There
+are files that support the operation of the SCPS Security Protocol
+and the SCPS Network Protocol that must be configured properly
+for your site before these protocols will work.
+
+However, if you must proceed, here are instructions to build the
+protocols in such a way that you do not use the SCPS-SP or the
+SCPS-NP.
+
+If you are operating on SunOS 4.1.3, Linux, or FreeBSD, you should
+be able to build the full SCPS Reference Implementation without
+error.  The SCPS lower layer software and the SCPS example applications
+have also been ported to NetBSD, Solaris 2.5 or higher, and IRIX
+5.3.  The SCPS-FP compilation will probably fail for these
+operating systems.  However, the other portions of the build
+should run to completion successfully (before the FP build
+fails).
+
+You must configure the Makefiles for the SCPS File Protocol, the
+SCPS example applications, and the main SCPS source directory.  
+There are scripts to assist you in doing this.
+
+First, cd to the FP directory.  Enter the command 
+
+./configure 
+
+This should print a message that indicates that a "Makefile" has 
+been created.
+
+Now, cd to the "apps" directory:
+
+cd ../apps
+
+Enter the command
+
+./configure
+
+Again, a (different format) message indicating that a make file is 
+being created should be printed.
+
+Now, cd to the "source" directory:
+
+cd ../source
+
+Enter the command 
+
+./configure
+
+And expect to see a message indicating that the make file is being
+created.
+
+Finally, change to the top-level (SCPS) directory:
+
+cd ..
+
+And build the configuration by entering the following command:
+
+make
+
+You should see the output of many compilations scroll past.  If you
+are operating on a Linux, SunOS 4.1.x, or FreeBSD operating system,
+you should see the make run to completion without errors.  On other
+operating systems, the FP compilation may fail.  Since it completes
+last, the other SCPS applications (scps_ttcp, scps_init, and scps_resp)
+should compile without error.  They will be copied to the "bin" 
+directory.  Refer to the documentation in the RI.pdf document in the
+"docs" directory for information on their use. 
+
+Depending on the data rates that SCPS RI will run over, you may have to
+change the value of LL_BUFFER in the Makefile.  This is the send
+and receive buffer the SCPS RI will use to access the kernel.  At high
+datarates, if you notice blocks of loss segments, you may need to change
+this to a large value 200000 bytes for example.
+

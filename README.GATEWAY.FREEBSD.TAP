@@ -1,0 +1,90 @@
+README FILE FOR SCPS GATEWAY REFERENCE IMPLEMENTATION - FreeBSD/NetBSD
+TAP support 
+
+This particular port uses a combination of the tap interface and
+bridging functionality. 
+
+The following steps are required before configuring the SCPS gateway to
+work under FreeBSD/NetBSD.
+
+NOTE THIS Version will only work with the most updated version of the
+FreeBSD Operating System.  It requires kernel version 5.4 or later and
+you MUST to a cvsup or other technique to ensure you have the if_tap
+and if_bridge modules.
+
+===================================================================
+Section 1  Prepaing the FreeBSD Operating System
+
+Obtaining and installing supporting software. You will probably need
+to do a cvs up or other technique to obtain the if_tap and if_bridge
+modules as well as the latest ifconfig code.
+
+Make sure your operating system configuration file contains the following
+entries
+
+device		tun			# Packet tunnel
+device		if_bridge		# Ethernet Bridging code
+
+Also you may need to update your ifconfig command as well.
+
+
+===================================================================
+Section 2  Building the SCPS Gateway
+
+The next step is to configure the makefiles for the SCPS Gateway.
+
+You must configure the makefiles for the SCPS application and the main
+SCPS source directory.  There are scripts to assist you in doing this.
+
+cd ../apps
+
+Enter the command
+
+./configure 
+
+A message indicating that a make file is being created should be printed.
+
+Now, cd to the "source" directory:
+
+cd ../source
+
+Enter the command
+
+./configure --gateway=yes --tap=yes
+
+expect to see a message indicating that the makefile is being created.
+
+Finally, change to the top-level (SCPS) directory:
+
+cd ..
+
+And build the configuration by entering the following command:
+
+make clean
+make
+
+
+===================================================================
+Section 3  Modifing the rfile
+
+The rfile required adding two additional directives to support
+the tap interface. These directives are AIF_TAP_NAME and
+BIF_TAP_NAME need to be set their corresponding tap interfaces.
+For example
+
+AIF_TAP_NAME	tap0
+BIF_TAP_NAME	tap1
+
+There are two additional directives that may be useful;
+C_OTHER_PROTO_QLEN and C_OTHER_PROTO_XRATE_DROP.  To implement
+the briding functionality the gateway now processes all IP packets.
+There is a queue for each protocol id for each direction.  The 
+directive C_OTHER_PROTO_QLEN allows you to set this queue length.
+Note that the default is 5.  C_OTHER_PROTO_XRATE_DROP allows you
+to set the drop dehavior when the gateway tried to emit the non
+TCP packets and no rate exists.  If  C_OTHER_PROTO_XRATE_DROP is
+set to 0 (the default) the packet will be dropped.  If this
+directive is set to 1, this packet will stay in the queue until
+rate is available.
+
+Well that's about it...

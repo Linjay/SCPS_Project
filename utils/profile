@@ -1,0 +1,102 @@
+#!/bin/csh
+
+#
+# If you give profile an argument, it runs the profile only on the
+# (executable) given as the argument.  Otherwise it runs on a bunch
+# of stuff in the SCPS_RI directory.
+#
+
+set FILENAME = SCPS_profile_`date +"%y_%m_%d_%H_%M_%S"`
+#set FILENAME = foo
+rm -f $FILENAME
+echo -n "Profiling SCPS_RI distribution to file: "
+echo $FILENAME
+echo -n "Beginning profile on: " > $FILENAME
+echo `date` >> $FILENAME
+echo -n "Machine is: " >> $FILENAME
+echo `hostname` >> $FILENAME
+
+if ( $#argv == 1 ) then
+    echo "Running profile with argument:" $1 >> $FILENAME
+    pwd >> $FILENAME
+    cksum $1 >> $FILENAME
+    strings $1 | grep Version >> $FILENAME
+    strings $1 | grep Compile >> $FILENAME
+    strings $1 | grep Revision >> $FILENAME
+    exit 0
+endif
+
+if ( -e ../lib/libscps.a ) then
+	echo " " >> $FILENAME
+	echo " " >> $FILENAME
+	echo "Running strings on libscps.a in lib directory." >> $FILENAME
+	cksum ../lib/libscps.a >> $FILENAME
+	set libcksum = `cksum ../lib/libscps.a`
+	strings ../lib/libscps.a | grep Version >> $FILENAME
+	strings ../lib/libscps.a | grep Compile >> $FILENAME
+	strings ../lib/libscps.a | grep Revision >> $FILENAME
+else
+	echo "There's no libscps.a in the lib directory." >> $FILENAME
+endif
+
+if ( -e ../source/libscps.a ) then
+	set sourcecksum = `cksum ../source/libscps.a`
+	set foo = $libcksum[1]
+	set bar = $sourcecksum[1]
+	if ( $foo == $bar ) then
+		echo "Checksums for lib and source are the same." >> $FILENAME
+	else
+		echo "Checksums for lib and source are different." >> $FILENAME
+		echo " " >> $FILENAME
+		echo " " >> $FILENAME
+		echo "Running strings on libscps.a in source directory." >> $FILENAME
+		cksum ../source/libscps.a >> $FILENAME
+		strings ../source/libscps.a | egrep Version >> $FILENAME
+		strings ../source/libscps.a | egrep Compile >> $FILENAME
+		strings ../source/libscps.a | grep Revision >> $FILENAME
+	endif
+else
+	echo "There's no libscps.a in the source directory." >> $FILENAME
+endif
+
+if ( -e ../apps/scps_ttcp ) then
+	echo " " >> $FILENAME
+	echo " " >> $FILENAME
+	echo "Running strings the FP server." >> $FILENAME
+	cksum ../FP/server >> $FILENAME
+	strings ../FP/server | egrep Version >> $FILENAME
+	strings ../FP/server | egrep Compile >> $FILENAME
+	strings ../FP/server | egrep Revision >> $FILENAME
+endif
+
+if ( -e ../FP/server ) then
+	echo " " >> $FILENAME
+	echo " " >> $FILENAME
+	echo "Running strings the FP server." >> $FILENAME
+	cksum ../FP/server >> $FILENAME
+	strings ../FP/server | egrep Version >> $FILENAME
+	strings ../FP/server | egrep Compile >> $FILENAME
+	strings ../FP/server | egrep Revision >> $FILENAME
+endif
+
+if ( -e ../FP/sfp ) then
+	echo " " >> $FILENAME
+	echo " " >> $FILENAME
+	echo "Running strings the sfp client." >> $FILENAME
+	cksum ../FP/sfp >> $FILENAME
+	strings ../FP/sfp | egrep Version >> $FILENAME
+	strings ../FP/sfp | egrep Compile >> $FILENAME
+	strings ../FP/sfp | egrep Revision >> $FILENAME
+endif
+
+echo " " >> $FILENAME
+echo " " >> $FILENAME
+echo "Checksums of source files:" >> $FILENAME
+if ( -e ../source/tp_output.c ) then
+	foreach file (../source/*.[ch])
+		cksum $file >> $FILENAME
+	end
+endif
+
+echo "done." >> $FILENAME
+echo "done."

@@ -1,0 +1,2 @@
+#!/bin/sh
+patch -Np0 -i tcpdump-3.4.scps.diffs

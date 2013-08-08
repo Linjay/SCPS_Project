@@ -1,0 +1,164 @@
+README for ppp_current_tx_len.
+
+Th following application, along with gw_route_cmdr will allow
+the SCPS gateway to keep the
+
+
+Step 1 - Modify the PPP driver within the Linux Kernel.
+
+The first piece of the effort is to get the current transmit queue
+length of the PPP interface.  I was hoping this information would be in
+bytes, however it is in packets.  The kernel mods to get this is only about
+10 lines of code.
+
+There are two file that need to be changed under the kernel source code
+
+First edit the file ./drivers/net/ppp_generic.c
+
+In the function ppp_net_ioctl after the SIOSGPPPSTATS: case and before
+the SIOCGPPPCSTATS: case add the following
+
+
+        case SIOCGPPPQLEN:
+                qlen = ppp->dev->qdisc->q.qlen;
+                if (copy_to_user(addr, &qlen, sizeof(qlen)))
+                        break;
+                err = 0;
+                break;
+
+Now edit the file ./include/linux/if_ppp.h
+
+After the following line (approx line number 156)
+
+#define SIOCGPPPCSTATS  (SIOCDEVPRIVATE + 2)
+
+Add the following
+
+#define SIOCGPPPQLEN    (SIOCDEVPRIVATE + 3)    /* PDF XXX PDF XXX */
+
+Now compile the kernel and the modules the way you normally.
+
+===================================================================
+
+Step 2 -  Quick Description of ppp_current_tx_len
+
+The ppp_current_tx_len applcation issues ioctls to get the current queue
+length from the ppp interface.  This applicaton will periodically query
+the kernel for this length every so often and pass this information to
+SCPS. The idea here is to keep the ppp queue full enough so always has
+data to send, but not too ful to cause issues with SCPS.  The notion is
+to have a threshold and an increment value.  Essentially periodically
+the queue length is checked against a threshold.  If less than the
+threshold, SCPS will be told it can pass a certain number of bytes down
+to the ppp driver.
+
+A thought might to check the queue every second and pass up 3000 bytes
+(2 full sized packet) if the current queue len is less than 5 packets. - 
+These are samples and will have to be tuned based on the characteristics
+of the individual links.
+
+In addition this application will check to see if the link transitions
+up or down.  If the link status transitions from UP to DOWN, then a message
+will be sent to SCPS indicating you should go into Persist with a 1
+second timeout until a link up indication is obtained.  NOTE:  A link up
+indication may either be an ACK from the far end or an explicit signal
+from this applications.  If the link status transitions from DOWN to UP,
+then a mesage will be sent to SCPS indicating link is available.
+
+To compile ppp_current_tx_len cd into utils/ppp_current_tx_len and
+just type make.
+
+===================================================================
+
+Step 3 -  Quick Description of gw_route_cmdr
+
+SCPS currently has a mangement interface to receive external stimuli.
+This interface is a standalone SCPS currently is a standalone command line
+application called 'gw_route_cmdr' and it located in the utils directory of the
+SCPS RI.  The notion is for ppp_current_tx_len to issue system() commands to
+execute the gw_route_cmdr application.  gw_route_cmdr will pass the information
+directly to SCPS RI.  Gw_route_cmdr will need to be pathed so when system()
+calls it, it will be found.
+
+To compile gw_route_cmdr cd into utils/gw_route_cmrd and just type make
+
+
+===================================================================
+
+Step 4 -  Quick Description of the SCPS RI
+
+4) SCPS has already been modified to augment the standard rate control technique
+will a flow control token bucket mechanism.  These token are (bytes) allow to be
+emitted are received from the gw_route_cmdr application.  The maximum size of the
+flow control bucket is configurable via SCPS.
+
+To compile the SCPS RI for this feature the following configuration options
+need to be added to the options in the source directory
+
+ --flow_control_thresh-yes  --gateway_ri_console=yes
+
+In addition you need to add a directive in the SCPS resource file.
+
+Set AIF_CC to 3 will enable the flow control feedback for A side
+or
+Set BIF_CC to 3 will enable the flow control feedback for B side
+
+Setting BIF_FLOW_CONTROL_CAP to the number of flow control bytes the
+gateway can accumulate on the A side
+or
+Setting AIF_FLOW_CONTROL_CAP to the number of flow control bytes the
+gateway can accumulate on the B side
+
+
+Step 5  - Change the default ppp queue length from 3 to 10
+
+yYou may need to increaset the defaullt length on the interface for
+example to increase the ppp'sinterfaces transmit queue length to 10 type
+
+ifconfig ppp0 txqueuelen 10
+
+
+Setp 6 - Run the gateway
+
+Tyep
+./gateway
+
+
+Step 7 - Run the ppp_current_tx_len like the following
+
+./ppp_current_tx_len -g 127.0.0.1 -t 5 -w 1 -i 2 -v -c -r 1 ppp0
+
+-g is the IP address of the gateway; since they are on the same box
+   the loopback address works great
+
+-t is the ppp queue length threshold in packets.  If the threshold is
+   met or exceeded no message is passed to the proxy
+
+-w is how often in seconds to we check the queue.  Check it every second.
+
+-i is how many packets it will signal to SCPS that is can send if we are
+   below the threshold.  NOTE that SCPS works in bytes so each packet
+   will correspond to 1500 bytes.
+
+-v is used to display the current queue length on the console.
+
+-c is used to send the messages to SCPS.  If the -c option is not present
+   this application can be used just for monitoring queue size.
+
+-r this is actually some internal number a value of 0 refers to the AIF
+   interface and a value of 1 refers to the BIF interface. 
+
+At the end you need to list add the interfaces that will be checked.
+
+Also note that ppp_current_tx_len will call gw_route_cmdr.  Please make
+sure that gw_route_cmdr is in a place the ppp_current_tx_len can find.
+
+Step 8
+
+Check the display of ppp_current_tx_len and see what you see.
+
+
+Step 9
+
+Start an FTP session and see what happens
+

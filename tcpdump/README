@@ -1,0 +1,50 @@
+This directory contains the files necessary to extend the 3.4 version
+of tcpdump (available via anonymous ftp from ftp.ee.lbl.gov) to parse
+the SCPS protocols.
+
+There are two files in this directory:  
+
+apply_scps_tcpdump_patch
+tcpdump-3.4.scps.diffs
+
+The file "apply" is a Bourne shell script that patches the tcpdump-3.4
+directory.  The other file contains the differences in a format that the
+patch utility can read.
+
+To apply the patches, you must have tcpdump-3.4 available on your 
+machine.  (Note that to successfully build tcpdump-3.4, you must
+acquire and build libpcap-0.4 from the same anonymous ftp site as 
+above.)  You must also have a version of the GNU "patch" utility.  This
+patch file has been tested with GNU's patch-2.5 distribution.
+
+Copy the two files (the Bourne shell script and the differences file)
+mentioned above to the directory that contains the tcpdump-3.4
+directory.  (For example, if you have the tcpdump-3.4 directory 
+in your home directory, cd to your home directory, and copy the 
+cited files to your home directory.)  Then type
+
+./apply_scps_tcpdump_patch<return>
+
+The response from the patch utility should be 
+
+patching file `tcpdump-3.4/patchlevel.h'
+patching file `tcpdump-3.4/Makefile.in'
+patching file `tcpdump-3.4/interface.h'
+patching file `tcpdump-3.4/path.h'
+patching file `tcpdump-3.4/print-ip.c'
+patching file `tcpdump-3.4/print-scpsnp.c'
+patching file `tcpdump-3.4/print-scpssp.c'
+patching file `tcpdump-3.4/print-tcp.c'
+patching file `tcpdump-3.4/print-udp.c'
+patching file `tcpdump-3.4/scpsnp.h'
+patching file `tcpdump-3.4/tcpdump.c'
+
+If you receive output that looks like the following you are probably
+not using GNU's patch capability:
+
+  Looks like a unified context diff.
+File to patch: 
+
+Now, execute the "configure" utility in the tcpdump-3.4 directory
+and build tcpdump according to its existing directions.  Upon installation,
+the tcpdump utility should be able to recognize SCPS options and packets.

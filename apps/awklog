@@ -1,0 +1,48 @@
+BEGIN {
+	last_cwnd = 0
+	last_cwnd_time = 0
+	last_cwnd_virgin = 1
+	new_cwnd = 0
+	new_prevcwnd = 0
+}
+{
+	if ( last_cwnd_virgin==1 ) {
+		last_cwnd_virgin = 0;
+		last_cwnd_time = $1;
+		last_cwnd = $3+$4;
+		last_prevcwnd = $3+$7
+
+		print "blue"
+		printf "line %f %u %f %u\n",
+			$1+30, $3+8000, $1+33, $3+8000;
+		printf "rtext %f %u\n", $1+35, $3+8000;
+		printf "current cwnd credit\n";
+
+		print "magenta"
+		printf "line %f %u %f %u\n",
+			$1+30, $3+10000, $1+33, $3+10000;
+		printf "rtext %f %u\n", $1+35, $3+10000;
+		printf "cwnd bucket size\n";
+	}
+
+	print "magenta"
+	new_cwnd = $3+$4
+	printf "line %f %u %f %u\n", last_cwnd_time, last_cwnd,
+			$1, last_cwnd;
+	printf "line %f %u %f %u\n", $1, last_cwnd,
+			$1, new_cwnd;
+	last_cwnd = new_cwnd
+
+	print "blue"
+	new_prevcwnd = $3+$7
+	printf "line %f %u %f %u\n", last_cwnd_time, last_prevcwnd,
+			$1, last_prevcwnd;
+	printf "line %f %u %f %u\n", $1, last_prevcwnd,
+			$1, new_prevcwnd;
+	last_prevcwnd = new_prevcwnd;
+
+	last_cwnd_time = $1
+}
+END {
+	print "go"
+}

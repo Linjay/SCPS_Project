@@ -1,0 +1,195 @@
+README FILE FOR SCPS GATEWAY REFERENCE IMPLEMENTATION
+
+NOTE:  The SCPS Gateway was originally developed to operate using 
+the FreeBSD operating system version 2.2.2 or greater because the
+Gateway requires the use of FreeBSD's divert sockets and IP firewall
+rules. 
+
+This README is divided into four sections:  Configuring the Kernel to
+Support the SCPS Gateway, Building the SCPS Gateway, Configuring and
+Executing the SCPS Gateway, and Other Notes.
+
+
+===================================================================
+Section 1:  Configuring the Kernel
+ 
+Before building the SCPS Gateway, the FreeBSD kernel must be modified
+in the following ways:
+
+1)  The maximum socket buffer size must be increased.
+
+2)  The default socket buffer size for divert sockets must be increased.
+
+3)  The kernel must be built to include the FreeBSD divert and
+    firewall options.
+    
+These changes should be performed by your system administrator since
+root privileges are required.
+
+To change the maximum socket buffer size, edit the file
+/usr/src/sys/sys/socketvar.h and make the following change at
+approximately line 93. Change
+
+#define SB_MAX          (256*1024)      /* default for max chars in sockbuf */
+
+                              to
+
+#define SB_MAX          (1024*1024)     /* default for max chars in sockbuf */
+
+
+To change the default divert socket sizem edit the file
+/usr/src/sys/netinet/ip_divert.c and make the following change at
+approximately line 64. Change
+
+#define DIVSNDQ         ((65536) + 100)
+#define DIVRCVQ         ((65536) + 100)
+
+                              to
+
+#define DIVSNDQ         (240000)
+#define DIVRCVQ         (240000)
+
+Also, your kernel configuration file in the directory
+/usr/src/sys/i386/conf must be modified to incorporate the divert
+utility.  The the following options must be added to your kernel
+configuration file.
+
+options         IPDIVERT                #Divert Socket
+options         IPFIREWALL              #Firewall code
+
+The kernel should be built and installed as normal.  The default
+configuration of the IPFIREWALL utility is to not allow any network
+access to the machine.  Before you reboot the machine the following
+line needs to be added to the end of the file /etc/rc right before
+the statement "exit 0" to again allow network access to the
+machine.
+
+ipfw add 30000 allow all from any to any
+
+Now you may reboot the machine.
+
+
+===================================================================
+Section 2  Building the SCPS Gateway
+
+After the machine is rebooted the next step is to configure the
+makefiles for the SCPS Gateway.
+
+You must configure the makefiles for the SCPS application and the main
+SCPS source directory.  There are scripts to assist you in doing this.
+
+cd ../apps
+
+Enter the command
+
+./configure
+
+A message indicating that a make file is being created should be printed.
+
+Now, cd to the "source" directory:
+
+cd ../source
+
+Enter the command
+
+./configure --gateway=yes
+
+And expect to see a message indicating that the makefile is being
+created.
+
+Finally, change to the top-level (SCPS) directory:
+
+cd ..
+
+And build the configuration by entering the following command:
+
+make
+
+You should see the output of many compilations scroll past.  This
+should compile cleanly and the executable 'gateway' should be
+in the bin directory.
+
+
+===================================================================
+Section 3  Configuring and Executing the SCPS Gateway
+
+Before executing the SCPS Gateway, the Gateway resource file 'rfile'
+must be created.  A sample of resource file is located in the
+SCPS bin directory and is names "SAMPLE.rfile"  A complete
+description can be found in the file GW_Resource_File.pdf under
+the doc directory.
+
+Since the Gateway uses the firewall and divert utilities of FreeBSD
+it must be executed as root.
+
+Once this file has been created, simple run the binary 'gateway'.
+
+That is it....
+
+
+===================================================================
+Section 4  Other Notes
+
+The following is a list of notes in no particular order.
+
+1)  The SCPS Gateway is not a routing protocol.  The Gateway operator
+    needs to ensure that traffic is routed to and through the Gateways
+    properly.  This may be performed by static routing or dynamically
+    through a routing protocol.
+
+2)  The SCPS Gateway has a hard limit of 128 simultaneous connection.
+    If more connections are required please contact the SCPS team.
+
+3)  The SCPS Gateway assumes that only two interfaces exist on the
+    machine.  If more than two interfaces exist, other ip firewall
+    rules may have to be manually added before the Gateway is
+    executed.
+
+4)  The target machine for the SCPS Gateway should be sized according
+    to the number of simultaneous connection and the characteristics
+    of the links involved.  Generally bigger is better.  As an
+    example the SCPS Gateway was developed on Pentium 266 MHz with
+    32 Megabytes on main memory.  This machine is solely dedicated to
+    the running of the SCPS Gateway.  Depending on the use of the
+    Gateway a more powerful machine may be necessary.
+
+5)  The default configuration of the SCPS Gateway is that no more than
+    10 Megabyte of memory can be allocated for the Gateway use.  This
+    number has a direct bearing on the number of simultaneous
+    connections and socket buffers which the machine can support.
+    This may be changed by adding the --memory option when configuring
+    the SCPS code.  For example if 20 Megabytes of memory are needed
+    from the SCPS source directory type
+
+    ./configure --gateway=yes  --memory=20000000
+
+    From the SCPS top level directory type
+
+    make clean
+    make
+
+6)  If the machine beings to swap main memory to disk, performance
+    will degrade substantially.  It is highly recommended that at least
+    one of the following steps be taken until swapping ceases:
+
+    o  Kill other non-essential processes.  Remember that the machine
+       hosting the SCPS Gateway should be a dedicated machine,
+
+    o  Decrease the amount of memory (i.e., the --memory option)
+       the SCPS Gateway may allocate,
+
+    o  Rehost the SCPS Gateway software on a more powerful machine,
+
+    o  Reduce the amount of simultaneous users accessing the gateway.
+
+7)  The internal memory management scheme implementeted rounds all
+    socket transport buffers to the nearest 32K value for internal
+    storage.  This does not affect the size of the send and receive
+    buffers.  This is important to note, so the system memory can
+    be sized accordingly.  For example, let's say you set the buffer
+    sizes to 4096 bytes to match a WIN95 box.  SCPS will allocate a
+    32K buffer to hold it.  This may affect the maximum number of
+    simultanous sockets the memory will support.
+
+
+T t t t that's all folks.

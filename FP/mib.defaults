@@ -1,0 +1,86 @@
+#
+# This is unclassified Government software.
+
+# The SCPS File Protocol (SCPS-FP) software was developed under
+# contract to the Jet Propulsion Laboratory, an operating division of
+# the California Institute of Technology and is available for use by
+# the public without need of a licence.
+
+# DISCLAIMER:
+
+# THE SCPS-FP SOFTWARE AND RELATED MATERIALS ARE PROVIDED "AS-IS"
+# WITHOUT WARRANTY OR INDEMNITY OF ANY KIND INCLUDING ANY WARRANTIES
+# OF USE, PEROFMRNACE, OR MERCHANTABILITY OR FITNESS FOR A PRTICULAR
+# USE OR PURPOSE (as set forth in UCC section 2312-2313) OR FOR ANY
+# PURPOSE WHATSOEVER.
+
+# USER BEARS ALL RISK RELATING TO USE, QUALITY, AND PERFORMANCE OF THE
+# SOFTWARE.
+
+# The Jet Propulsion Laboratory, the California Institute of
+# Technology, and the United States government retain a paid-up
+# royalty free world wide license in this product.
+
+# SAIC Disclaimer:
+#   (1) SAIC assumes no legal responsibility for the source code and
+#       its subsequent use.
+#   (2) No warranty or representation is expressed or implied.
+#   (3) Portions (e.g. Washington University FTP Replacement Daemon)
+#       are copyright (c) Regents of the University of California.
+#	All rights reserved.  Restrictions included in said copyright
+#	are also applicable to this release.
+
+#
+# Management Information Base defaults
+#
+# $Id: mib.defaults,v 1.8 2000/10/23 14:26:37 scps Exp $
+#
+
+# TYPE { (A)SCII | (I)MAGE }
+TYPE=I
+
+# MODE { (S)TREAM | (B)LOCK }
+MODE=S
+
+# STRUCTURE { (F)ILE | (R)ECORD }
+STRUCTURE=F
+
+# AUTORESTART { ENABLED(1) | DISABLED(0) }
+AUTORESTART=0
+
+# RESTARTNUM { 0 .. 32767 }
+RESTARTNUM=99
+
+# SENDPORT { ENABLED(1) | DISABLED(0) }
+SENDPORT=1
+
+# CTLPORT { 1..65535 }
+#   This value must be 21 for FTP compatibility.
+#   Well-known port numbers must be avoided.
+#   A number like 2121 avoids collisions with
+#   other applications.
+CTLPORT=2121
+
+# SEND REPLY TEXT  { YES(1) | NO(0) }
+SRTXT=1
+
+# IDLE (IDLE TIMEOUT IN SECONDS) { 1 .. 32767 }
+IDLE=900
+
+# BETS (BEST EFFORT TRANSPORT SERVICE) { ENABLED(1) | DISABLED(0) }
+BETS=0
+
+# BETSFILL { 0 .. 255 }
+BETSFILL=0
+
+# HASH MARKS TO INDICATE TRANSFER PROGRESS { ENABLED(1) | DISABLED(0) }
+HASH=1
+
+# HASHSIZE { 100 .. 32767 }
+HASHSIZE=4096
+
+# DEBUG { 0 .. 1 }
+# Set DEBUG to 1 to get debug messages on the screen.
+# Set it to 0 to turn them off.
+DEBUG=1
+

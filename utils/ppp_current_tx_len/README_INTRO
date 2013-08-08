@@ -1,0 +1,54 @@
+The following is some background on a new packet emission policy based
+on trying to keep the bottleneck interface queue non-empty.
+
+First, the best throughput that any subnetwork can obtain occurs when there
+is always data in the queue to be sent.  From an application's perspective,
+the best throughput than can be obtained is when the pipe is constantly
+full and data does not get retransmitted.
+
+SCPS works best when it has a known bandwidth and can respond to essentially
+fill the pipe.  For example, if you have a 2.4 Kbps link, SCPS will emit
+data at 2.4 Kbps and not self congest the pipe.  When you operate over most
+RF links this is fine, but when operating over a link that offers
+compression the effective bandwidth is never really known. It depends on
+the data being sent and the compression techniques.  But how do we deal
+with compression.  Well there are actually two different types of
+compression that can be used.
+
+The first is known as Van Jacobson header compression (originally documented
+in RFC 1144, and subsequently updated in later RFCs)  This type of
+compression compresses the TCP and IP header down from 40 octets to about
+5 octets (I believe),  the TCP options are sent uncompressed.  The important
+part of this compression is that it is based on delta encoding of the
+various fields in the TCP header.  This technique has many problems when
+operating over errors channels. Thus we assumed this compression is
+disabled.
+
+Another type of compression is data compression using deflate or some other
+type of technique.  This is where you get more bang for the buck.  If
+you are sending text messages that are highly compressible, you can easily
+turn a 2.4K link into a 10 Kbps link.  However SCPS when operating at
+pure rate control will only emit data out at 2.4 Kbps -   essentially
+completely under driving the link.  Not so good ;-(  Based how the data
+get compressed, we now expand the capacity of the link.  Thus the effective
+capacity of this link is unknown.  Well, the PPP driver does not know about
+compression ratios, but it does know how much data is in the PPP queue and
+the goal here is to keep the PPP queue large enough so based on the
+compressibility of data the link will always have data to send.  
+
+Another example where the bandwidth is not known apriori involves multiple
+nodes sharing a single resource.  For example, if you have a 32 Kbps link
+that is shared among many different nodes where the nodes actually request
+bandwidth dynamically based how much data they have in the link layer
+buffers to send.  This means the bandwidth that is available for a
+particular node is not known a-priori and can vary tremendously based on
+network condition and scenarios.  For example, if you have 2 nodes on this
+network and only a single file transfer is occurring from Node A to Node B.
+Node A will get most of the bandwidth - say 28 Kbps and Node B may only
+get 3 Kbps (for the ack channel).  If we have 5 nodes on the network and
+each is sending a file then the bandwidth allocate per node is more like
+5.8 Kbps. 
+
+These are the types of environments where this flow control based packet
+emission policy has been designed.
+

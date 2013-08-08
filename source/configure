@@ -1,0 +1,1328 @@
+
+#Configuration defaults:  no security protocol, IP as the network protocol, 
+#no encapsulating IP headers, no symbol table (change if you're debugging).
+#
+scpssp=no
+tun=no
+tap=no
+change_src_port=no
+low_cpu=no
+low_idle=no
+mpf=no
+nl_default=ipv4
+encap=udp
+symtab=no
+debug=no
+gateway=no
+gateway_larger=no
+gateway_many=no
+gateway_single_thread=no
+secure_gateway=no
+gateway_router=no
+gateway_router_dscp=no
+flow_control_thresh=no
+flow_control_set=no
+strict_dscp=no
+gateway_ri_console=no
+gateway_dual_interface=no
+external_rule_generation=no
+compression=new
+memory=10000000
+init_cwnd=0
+assume_corrupt=yes
+compress=no
+dnr=no
+udp_gateway=no
+min_rate=no
+ipv6=no
+
+
+for arg in $*;
+do
+  # Handle --scpssp<sp> or
+  #        --scpssp=<sp>
+  case $next_arg in
+  --scpssp)
+    # Handle --scpssp<sp>=<sp>arg,
+    #        --scpssp<sp>=arg, and
+    #        --scpssp<sp>arg
+  if [ x$arg != x= ]; then
+    scpssp=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --mpf)
+  if [ x$arg != x= ]; then
+    mpf=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --compression)
+  if [ x$arg != x= ]; then
+    compression=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --compress)
+  if [ x$arg != x= ]; then
+    compress=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --nl_default)
+  if [ x$arg != x= ]; then
+    nl_default=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --debug)
+  if [ x$arg != x= ]; then
+    debug=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --assume_corrupt)
+  if [ x$arg != x= ]; then
+    assume_corrupt=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --encap)
+  if [ x$arg != x= ]; then
+    encap=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --memory)
+  if [ x$arg != x= ]; then
+    memory=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --init_cwnd)
+  if [ x$arg != x= ]; then
+    init_cwnd=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --symtab)
+  if [ x$arg != x= ]; then
+    systab=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway)
+  if [ x$arg != x= ]; then
+    gateway=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --ipv6)
+  if [ x$arg != x= ]; then
+    ipv6=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway_larger)
+  if [ x$arg != x= ]; then
+    gateway_larger=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway_many)
+  if [ x$arg != x= ]; then
+    gateway_many=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway_single_thread)
+  if [ x$arg != x= ]; then
+    gateway_single_thread=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway_router)
+  if [ x$arg != x= ]; then
+    gateway_router=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway_router_dscp)
+  if [ x$arg != x= ]; then
+    gateway_router_dscp=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --flow_control_thresh)
+  if [ x$arg != x= ]; then
+    flow_control_thresh=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --flow_control_set)
+  if [ x$arg != x= ]; then
+    flow_control_set=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --strict_dscp)
+  if [ x$arg != x= ]; then
+    strict_dscp=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --gateway_ri_console)
+  if [ x$arg != x= ]; then
+    gateway_ri_console=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --external_rule_generation)
+  if [ x$arg != x= ]; then
+    external_rule_generation=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --dnr)
+  if [ x$arg != x= ]; then
+    dnr=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --udp_gateway)
+  if [ x$arg != x= ]; then
+    udp_gateway=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  --secure_gateway)
+  if [ x$arg != x= ]; then
+    secure_gateway=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+
+  --gateway_dual_interface)
+  if [ x$arg != x= ]; then
+    gateway_dual_interface=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  *)
+    case $arg in
+    --scpssp |  --sp )
+      next_arg=--scpssp
+      ;;
+    --scpssp=* | --sp=* )
+      scpssp=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$scpssp = x ]; then
+        next_arg=--scpssp
+      fi
+      ;;
+    --mpf=* )
+      mpf=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$mpf = x ]; then
+        next_arg=--mpf
+      fi     
+      ;;
+    --compression=* )
+      compression=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$compression = x ]; then
+        next_arg=--compression
+      fi     
+      ;;
+    --compress=* )
+      compress=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$compress = x ]; then
+        next_arg=--compress
+      fi     
+      ;;
+    --nl_default |  --nl )
+      next_arg=--nl_default
+      ;;
+    --nl_default=* | --nl=* )
+      nl_default=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$nl_default = x ]; then
+        next_arg=--nl_default
+      fi
+      ;;
+    --encapsulation |  --encap )
+      next_arg=--encap
+      ;;
+    --encapsulation=* | --encap=* )
+      encap=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$encap = x ]; then
+        next_arg=--encap
+      fi
+      ;;
+   --memory=* | --mem=* )
+      memory=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$memory = x ]; then
+        next_arg=--memory
+      fi
+      ;;
+   --init_cwnd=* | --cwnd=* )
+      init_cwnd=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$init_cwnd = x ]; then
+        next_arg=--init_cwnd
+      fi
+      ;;
+    --assume_corrupt=* )
+      assume_corrupt=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$assume_corrupt = x ]; then
+        next_arg=--assume_corrupt
+      fi
+      ;;
+    --debug )
+      next_arg=--debug
+      ;;
+    --debug=* )
+      debug=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$debug = x ]; then
+        next_arg=--debug
+      fi
+      ;;
+    --symtab )
+      next_arg=--symtab
+      ;;
+    --secure_gateway=* )
+      secure_gateway=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$secure_gateway = x ]; then
+        next_arg=--secure_gateway
+      fi
+      ;;
+    --gateway_dual_interface=* )
+      gateway_dual_interface=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_dual_interface = x ]; then
+        next_arg=--gateway_dual_interface
+      fi
+      ;;
+    --gateway=* )
+      gateway=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway = x ]; then
+        next_arg=--gateway
+      fi
+      ;;
+    --ipv6=* )
+      ipv6=`echo $arg | sed 's/^[-a-z6]*=//'`
+      if [ x$ipv6 = x ]; then
+        next_arg=--ipv6
+      fi
+      ;;
+    --gateway_larger=* )
+      gateway_larger=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_larger = x ]; then
+        next_arg=--gateway_larger
+      fi
+      ;;
+    --gateway_many=* )
+      gateway_many=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_many = x ]; then
+        next_arg=--gateway_many
+      fi
+      ;;
+    --gateway_single_thread=* )
+      gateway_single_thread=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_single_thread = x ]; then
+        next_arg=--gateway_single_thread
+      fi
+      ;;
+    --gateway_router=* )
+      gateway_router=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_router = x ]; then
+        next_arg=--gateway_router
+      fi
+      ;;
+    --strict_dscp=* )
+      strict_dscp=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$strict_dscp = x ]; then
+        next_arg=--strict_dscp
+      fi
+      ;;
+    --gateway_router_dscp=* )
+      gateway_router_dscp=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_router_dscp = x ]; then
+        next_arg=--gateway_router_dscp
+      fi
+      ;;
+    --flow_control_thresh=* )
+      flow_control_thresh=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$flow_control_thresh = x ]; then
+        next_arg=--flow_control_thresh
+      fi
+      ;;
+    --flow_control_set=* )
+      flow_control_set=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$flow_control_set = x ]; then
+        next_arg=--flow_control_set
+      fi
+      ;;
+    --gateway_ri_console=* )
+      gateway_ri_console=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_ri_console = x ]; then
+        next_arg=--gateway_ri_console
+      fi
+      ;;
+    --external_rule_generation=* )
+      external_rule_generation=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$external_rule_generation = x ]; then
+        next_arg=--external_rule_generation
+      fi
+      ;;
+    --tun=* )
+      tun=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$tun = x ]; then
+        next_arg=--tun
+      fi
+      ;;
+    --tap=* )
+      tap=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$tap = x ]; then
+        next_arg=--tap
+      fi
+      ;;
+    --change_src_port=* )
+      change_src_port=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$change_src_port = x ]; then
+        next_arg=--change_src_port
+      fi
+      ;;
+    --low_cpu=* )
+      low_cpu=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$low_cpu = x ]; then
+        next_arg=--low_cpu
+      fi
+      ;;
+    --low_idle=* )
+      low_idle=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$low_idle = x ]; then
+        next_arg=--low_idle
+      fi
+      ;;
+    --min_rate=* )
+      min_rate=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$min_rate = x ]; then
+        next_arg=--min_rate
+      fi
+      ;;
+    --dnr=* )
+      dnr=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$dnr = x ]; then
+        next_arg=--dnr
+      fi
+      ;;
+    --udp_gateway=* )
+      udp_gateway=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$udp_gateway = x ]; then
+        next_arg=--udp_gateway
+      fi
+      ;;
+    --symtab=* )
+      symtab=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$symtab = x ]; then
+        next_arg=--symtab
+      fi
+      ;;
+    --help | --h | -h | h)
+      echo
+      echo SCPS Makefile configuration utility
+      echo 
+      echo Configuration parameters:
+      echo "   Security protocol present or not"
+      echo "      configure with '--scpssp=yes' or '--scpssp=no' on the command line"
+      echo "      default is --scpssp=$scpssp"
+      echo
+      echo "   Default Network layer protocol"
+      echo "      configure with '--nl_default=ip' or '--nl_default=np' on the command line"
+      echo "      default is --nl_default=$nl_default"
+      echo
+      echo "   Lower layer encapsulation method"
+      echo "     Options for IP network layer:"
+      echo "       Raw IP - configure with '--encap=raw'"
+      echo "       Raw IP in Raw IP - configure with '--encap=raw_encap'"
+      echo "       IP in UDP/IP - configure with '--encap=udp'"
+      echo "       IP in UDP/IP (loopback) - configure with '--encap=loop'"
+      echo "     Options for SCPS-NP network layer:"
+      echo "       NP in Raw IP - configure with '--encap=raw'"
+      echo "       NP in UDP/IP - configure with '--encap=udp'"
+      echo "       NP in UDP/IP (loopback) - configure with '--encap=loop'"
+      echo "     Note:  must be 'root' to run with '--encap=raw' or '--encap=raw_encap'"
+      echo "     default is '--encap=$encap'"
+      echo 
+      echo "   Symbol table present for debugging or not"
+      echo "      configure with '--symtab=yes' or '--symtab=no'"
+      echo "      default is --symtab=$symtab"
+      echo
+      echo "   Enable Increased Probability of Timely Receipt"
+      echo "      configure with '--mpf=yes' or '--mpf=no' on the command line"
+      echo "      default is --mpf=$mpf"
+      echo
+      echo "   Enable compression capability "
+      echo "      configure with '--compress=yes' or '--compress=no' on the command line"
+      echo "      default is --compress=$compress"
+      echo
+      echo "   Enable older and non standard verion of compression "
+      echo "      configure with '--compression=new' or '--compression=old' on the command line"
+      echo "      default is --compression=$compression"
+      echo
+      echo "   Enable the Security Protocol"
+      echo "      configure with '--scpssp=yes' or '--scpssp=no' on the command line"
+      echo "      default is --scpssp=$scpssp"
+      echo
+      echo "   SCPS TP to TCP Gateway enabled or disabled "
+      echo "      configure with '--gateway=yes' or '--gateway=no'"
+      echo "      default is --gateway=$gateway"
+      echo
+      echo "   Enable use of UDP encapsulation for a gateway interface"
+      echo "      configure with '--gateway_dual_interface=yes' or '--gateway_dual_interface=no'"
+      echo "      default is --gateway_dual_interface=$gateway_dual_interface"
+      echo
+      echo "   Enable use of more than the default entry for classifying traffic to be gatewayed"
+      echo "      configure with '--gateway_router=yes' or '--gateway_router=no'"
+      echo "      default is --gateway_router=$gateway_router"
+      echo
+      echo "   Double the number of connections that a single gateway may process"
+      echo "      configure with '--gateway_larger=yes' or '--gateway_larger=no' on the command line"
+      echo "      default is --gateway_larger=$gateway_larger"
+      echo
+      echo "   Allow the gateway to multiplex among a greater number of simultaneous connections"
+      echo "      configure with '--gateway_many=yes' or '--gateway_many=no' on the command line"
+      echo "      default is --gateway_many=$gateway_many"
+      echo
+      echo "   Enable the SCPS Security protocol for the gateway implementation "
+      echo "      configure with '--secure_gateway=yes' or '--secure_gateway=no' on the command line"
+      echo "      default is --secure_gateway=$secure_gateway"
+      echo
+      echo "   Enable the IPV6 protocol for the gateway implementation "
+      echo "      configure with '--ipv6=yes' or '--ipv6=no' on the command line"
+      echo "      default is --ipv6=$ipv6"
+      echo
+      echo "   Enable the use of an external program to dynamically configurate certain gateway parameters"
+      echo "      configure with '--gateway_ri_console=yes' or '--gateway_ri_console=no' on the command line"
+      echo "      default is --gateway_ri_console=$gateway_ri_console"
+      echo
+      echo "   Enable the use of routing/flow classifying based on DSCP"
+      echo "      configure with '--gateway_router_dscp=yes' or '--gateway_router_dscp=no' on the command line"
+      echo "      default is --gateway_router_dscp=$gateway_router_dscp"
+      echo
+      echo "   Enable the use of strict DSCP i.e., DSCP remain the same as they were during the connection establishment phase."
+      echo "      configure with '--strict_dscp=yes' or '--strict_dscp=no' on the command line"
+      echo "      default is --strict_dscp=$strict_dscp"
+      echo
+      echo "   Enable the use of a guarenteed minimum rate control while using Vegas to find a 'good' operating point"
+      echo "      configure with '--min_rate=yes' or '--min_rate=no' on the command line"
+      echo "      default is --min_rate=$min_rate"
+      echo
+      echo "   Enable the use of an external program to dynamically configurate certain gateway parameters"
+      echo "      configure with '--flow_control_thresh=yes' or '--flow_control_thresh=no' on the command line"
+      echo "      default is --flow_control_thresh=$flow_control_thresh"
+      echo
+      echo "   Enable the use of network layer packet processing for linux based gateway"
+      echo "      configure with '--tun=yes' or '--tun=no' on the command line"
+      echo "      default is --tun=$tun"
+      echo
+      echo "   Enable the use of link layer packet processing for linux based gateway"
+      echo "      configure with '--tap=yes' or '--tap=no' on the command line"
+      echo "      default is --tap=$tap"
+      echo
+      echo "   Controls behavior of source transport port"
+      echo "      configure with '--change_src_port=yes' or '--change_src_port=no' on the command line"
+      echo "      default is --change_src_port=$change_src_port"
+      echo
+      echo "   Enable the use of low cpu utilizatoin"
+      echo "      configure with '--low_cpu=yes' or '--low_cpu=no' on the command line"
+      echo "      default is --low_cpu=$low_cpu"
+      echo
+      echo "   Enable the use of low cpu idle"
+      echo "      configure with '--low_idle=yes' or '--low_idle=no' on the command line"
+      echo "      default is --low_idle=$low_idle"
+      echo
+      echo "   Disable automatic rule creation within the gateway"
+      echo "      configure with '--external_rule_generation=yes' or '--external_rule_generation=no' on the command line"
+      echo "      default is --external_rule_generation=$external_rule_generation"
+      echo
+      echo "   SCPS TP Options"
+      echo "      --assume_corrupt tells TP to assume that loss is an indication of corruption"
+      echo "        not congestion"
+      echo "      configure with '--assume_corrupt=yes' or '--assume_corrupt=no' on the command line"
+      echo "      default is --assume_corrupt=$assume_corrupt"
+      echo
+      echo "   Debugging object code present or not support for debugging "
+      echo "   required if you define andy of the -DDEBUG_XXX macros in the Makefile"
+      echo "      configure with '--debug=yes' or '--debug=no'"
+      echo "      default is --debug=$debug"
+      echo
+      exit 0
+      ;;
+   *)
+      echo "Invalid argument to SCPS Makefile configuration utility $arg"
+      echo
+      echo "     Valid arguments are --scpssp, --nl_default, --encap, --symtab"
+      echo "                         --memory --init_cwnd --dnr --assume_corrupt"
+      echo "                         --compress --compression --debug"
+      echo "                         --mpf"
+
+      echo "                         --gateway --secure_gateway --gateway_dual_interface"
+      echo "                         --gateway_router --gateway_larger --gateway_many --ipv6"
+
+      echo "                         --gateway_ri_console --gateway_single_thread  --gateway_ri_console"
+      echo "                         --min_rate --gateway_router_dscp  --strict_dscp"
+      echo "                         --flow_control_thresh --external_rule_generation --flow_control_set"
+	
+      echo "                         --tun --tap --low_cpu  --low_idle --change_src_port "
+
+      echo "     Defaults are "
+      echo "                         --scpssp=$scpssp, --nl_default=$nl_default, --encap=$encap, --symtab=$symtab"
+      echo "                         --memory=$memory --init_cwnd=$init_cwnd --dnr=$dnr --assume_corrupt=$assume_corrupt"
+      echo "                         --compress=$compress --compression=$compression --debug=$debug"
+      echo "                         --mpf=$mpf"
+
+      echo "                         --gateway=$gateway --secure_gateway=$secure_gateway --gateway_dual_interface=$gateway_dual_interface"
+      echo "                         --gateway_router=$gateway_router --gateway_larger=$gateway_larger --gateway_many=$gateway_many"
+
+      echo "                         --gateway_ri_console=$gateway_ri_console --gateway_single_thread=$gateway_single_thread --gateway_ri_console=$gateway_ri_console"
+      echo "                         --min_rate=$min_rate --gataway_router_dscp=$gateway_router_dscp  --strict_dscp=$strict_dscp"
+      echo "                         --flow_control_thresh=$flow_control_thresh --external_rule_generation=$external_rule_generation --flow_control_set=$flow_control_set"
+	
+      echo "                         --tun=$tun --tap=$tap --low_cpu=$low_cpu --low_idle=$low_idle --change_src_port=$change_src_port"
+      echo "			     --ipv6=$ipv6"
+      echo
+      echo Please enter ./configure --help for more information
+      echo
+      exit 0
+      ;;
+    esac
+  esac
+done
+
+tmp=$scpssp
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of scpssp must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --scpssp=yes\'
+  exit 1
+  ;;
+esac
+tmp=$mpf
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of mpf must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --mpf=no\'
+  exit 1
+  ;;
+esac
+tmp=$compression
+case $tmp in
+new | old)
+  ;;
+*)
+  echo The value of compression must be either \'new\' or \'old\'
+  echo Valid command line syntax is \'./configure --compression=new\'
+  echo $tmp "  " $compression
+  exit 1
+  ;;
+esac
+tmp=$compress
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of compress must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --compress=no\'
+  exit 1
+  ;;
+esac
+tmp=$nl_default
+case $tmp in
+ip | np | NL_DEFAULT_IP | NL_DEFAULT_NP | ipv4 | ipv6)
+  ;;
+*)
+  echo The value of nl_default must be either \'ip\' or \'np\'
+  echo Valid command line syntax is \'./configure --nl_default=ip\'
+  exit 1
+  ;;
+esac
+
+case $tmp in      
+ip | NL_DEFAULT_IP | ipv4)
+  nl_default=-DNL_DEFAULT_IPV4
+  ;;  
+np | NL_DEFAULT_NP)
+  nl_default=-DNL_DEFAULT_NP
+  ;;  
+ipv6 )
+  nl_default=-DNL_DEFAULT_IPV6
+  ;;  
+esac  
+
+case $gateway in
+yes | no)
+  ;;
+*)
+  echo The value of gateway must be either \'yes\' if present
+  echo Valid command line syntax is \'./configure --gateway=yes\'
+  exit 1
+  ;;
+esac
+
+if [ $gateway = yes ]; then
+  encap=divert;
+fi
+
+tmp=$encap
+case $tmp in
+gateway)
+  ;;
+raw)
+  lower_layer=-DLL_RAWIP 
+  ;;
+udp)
+  lower_layer=
+    protocols="-DENCAP_UDP"
+  if [ $nl_default = ip ]; then
+    netobjs="\$(IPnIPOBJS)"
+  fi
+  ;;
+loop)
+  lower_layer=-DLL_LOOPBACK
+    protocols="-DENCAP_UDP"
+  if [ $nl_default = ip ]; then
+    netobjs="\$(IPnIPOBJS)"
+  fi
+  ;;
+raw_encap)
+  if [ $nl_default = np ]; then 
+    echo
+    echo WARNING:  The encap value \'raw_encap\' is only for use with IP.  Setti
+ng encap to \'raw\'.
+    echo
+    encap=raw     
+    lower_layer=-DLL_RAWIP
+  else
+    lower_layer=-DENCAP_RAW
+    netobjs="\$(IPnIPOBJS)"
+  fi
+  ;;
+divert)
+  lower_layers=-DLL_RAWIP
+  protocols="$protocols -DIP -DENCAP_DIVERT"
+  encap=divert 
+  netobjs="\$(IPnIPOBJS)"
+  ;;
+no)
+  ;;
+*)
+  echo The value of encap must be \'raw\', \'udp\', \'loop\', \'raw_encap\' or \'divert\' 
+  echo Valid command line syntax is \'./configure --encap=raw\'
+  exit 1
+  ;;
+esac
+
+if [ $scpssp = yes ]; then
+  protocols="$protocols -DSCPSSP"
+  netobjs="$netobjs \$(SPOBJS)"
+fi
+
+if [ $mpf = yes ]; then
+  protocols="$protocols -DMPF"
+fi
+
+if [ $compress = yes ]; then
+  protocols="$protocols -DCOMPRESS"
+fi
+
+if [ $compression = new ]; then
+  protocols="$protocols -DOPT_COMPRESS -DOPT_NEW_COMPRESS"
+fi
+
+if [ $compression = old ]; then
+  protocols="$protocols -DOPT_COMPRESS -DOPT_OLD_COMPRESS"
+fi
+
+tmp=$symtab
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of symtab must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --symtab=yes\'
+  exit 1
+  ;;
+esac
+
+if [ $symtab = yes ]; then
+  symtab=-g ;
+else
+  symtab=" " ;
+fi
+
+tmp=$gateway
+case $gateway in
+yes | no)
+  ;;
+*)
+  echo The value of gateway must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --gateway=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$ipv6
+case $ipv6 in
+yes | no)
+  ;;
+*)
+  echo The value of ipv6 must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --ipv6=yes\' 
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_larger
+case $gateway_larger in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_larger must be \'yes\' if present
+  echo Valid command line syntax is \'./configure --gateway_larger=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_many
+case $gateway_many in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_many must be \'yes\' if present
+  echo Valid command line syntax is \'./configure --gateway_many=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_single_thread
+case $gateway_single_thread in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_single_thread must be \'yes\' if enabled 
+  echo Valid command line syntax is \'./configure --gateway_single_thread=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_router
+case $gateway_router in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_router must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --gateway_router=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_router_dscp
+case $gateway_router_dscp in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_router_dscp must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --gateway_router_dscp=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$flow_control_thresh
+case $flow_control_thresh in
+yes | no)
+  ;;
+*)
+  echo The value of flow_control_thresh must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --flow_control_thresh=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$flow_control_set
+case $flow_control_set in
+yes | no)
+  ;;
+*)
+  echo The value of flow_control_set must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --flow_control_set=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$strict_dscp
+case $strict_dscp in
+yes | no)
+  ;;
+*)
+  echo The value of strict_dscp must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --strict_dscp=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_ri_console
+case $gateway_ri_console in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_ri_console must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --gateway_ri_console=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$external_rule_generation
+case $external_rule_generation in
+yes | no)
+  ;;
+*)
+  echo The value of external_rule_generation must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --external_rule_generation=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$tun
+case $tun in
+yes | no)
+  ;;
+*)
+  echo The value of tun must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --tun=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$min_rate
+case $min_rate in
+yes | no)
+  ;;
+*)
+  echo The value of tun must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --min_rate=no\'
+  exit 1
+  ;;
+esac
+
+tmp=$tap
+case $tap in
+yes | no)
+  ;;
+*)
+  echo The value of tap must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --tap=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$change_src_port
+case $change_src_port in
+yes | no)
+  ;;
+*)
+  echo The value of change_src_port be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --change_src_port=yes\'
+  exit 1
+  ;;
+esac
+tmp=$low_cpu
+case $low_cpu in
+yes | no)
+  ;;
+*)
+  echo The value of low_cpu must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --low_cpu=yes\'
+  exit 1
+  ;;
+esac
+tmp=$low_idle
+case $low_idle in
+yes | no)
+  ;;
+*)
+  echo The value of low_idle must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --low_idle=yes\'
+  exit 1
+  ;;
+esac
+tmp=$secure_gateway
+case $secure_gateway in
+yes | no)
+  ;;
+*)
+  echo The value of secure_gateway must be \'yes\' if enabled
+  echo Valid command line syntax is \'./configure --secure_gateway=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_dual_interface
+case $gateway_dual_interface in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_dual_interface must be \'yes\' if enabeld
+  echo Valid command line syntax is \'./configure --gateway_dual_interface=yes\'
+  exit 1
+  ;;
+esac
+
+if [ $gateway = yes ]; then
+  protocols="$protocols -DIP -DENCAP_DIVERT -DGATEWAY -DGATEWAY_SELECT -DFAIRER_GATEWAY -DGATEWAY_SINGLE_THREAD"
+  netobjs="\$(IPnIPOBJS)"
+  encap=divert
+  gateway_single_thread=yes
+fi
+
+if [ $gateway_larger = yes ]; then
+  protocols="$protocols -DGATEWAY_LARGER"
+fi
+
+if [ $gateway_many = yes ]; then
+  protocols="$protocols -DGATEWAY_MANY"
+fi
+
+if [ $gateway_single_thread = yes ]; then
+  protocols="$protocols -DGATEWAY_SINGLE_THREAD"
+  thread_source=thread_single.c
+else
+  thread_source=thread.c
+fi
+
+if [ $gateway_router = yes ]; then
+  protocols="$protocols -DGATEWAY_ROUTER "
+fi
+
+if [ $gateway_router_dscp = yes ]; then
+  protocols="$protocols -DGATEWAY_ROUTER_DSCP "
+fi
+
+if [ $flow_control_thresh = yes ]; then
+  protocols="$protocols -DFLOW_CONTROL_THRESH "
+fi
+
+if [ $flow_control_set = yes ]; then
+  protocols="$protocols -DFLOW_CONTROL_SET "
+fi
+
+if [ $strict_dscp = yes ]; then
+  protocols="$protocols -DSTRICT_DSCP "
+fi
+
+if [ $gateway_ri_console = yes ]; then
+  protocols="$protocols -DSCPS_RI_CONSOLE -DGATEWAY_ROUTER"
+fi
+
+if [ $external_rule_generation = yes ]; then
+  protocols="$protocols -DEXTERNAL_RULE_GENERATION"
+fi
+
+if [ $secure_gateway = yes ]; then
+  protocols="$protocols -DIP -DENCAP_DIVERT -DGATEWAY -DGATEWAY_SELECT -DFAIRER_GATEWAY -DSECURE_GATEWAY -DSCPSSP"
+  netobjs="$netobjs \$(IPnIPOBJS)"
+  netobjs="$netobjs \$(SPOBJS)"
+  encap=divert
+  scpssp=yes
+  gateway=yes
+fi
+
+if [ $ipv6 = yes ]; then
+  protocols="$protocols -DIPV6"
+  nl_default=-DNL_DEFAULT_IPV6
+fi
+
+if [ $gateway_dual_interface = yes ]; then
+  protocols="$protocols -DGATEWAY_DUAL_INTERFACE -DENCAP_UDP"
+  netobjs="$netobjs \$(IPnIPOBJS)"
+  encap=divert
+  scpssp=no
+  gateway=yes
+fi
+
+
+if [ $dnr = yes ]; then
+  lower_layer="-DLL_RAWIP -DDIVERT_N_RAW"
+fi
+
+if [ $udp_gateway = yes ]; then
+  prototols="$prototols -DUDP_GATEWAY"
+fi
+
+if [ $assume_corrupt = yes ]; then
+  protocols="$protocols -DASSUME_CORRUPT"
+  echo "ASSUME_CORRUPT set; protocols now:" $protocols
+fi
+
+tun_objects=
+tun_srcs=
+if [ $tun = yes ]; then
+    protocols="$protocols -DTUN_INTERFACE"
+    tun_srcs="ini.c sk_route.c"
+    tun_objects="ini.o sk_route.o"
+fi
+
+tap_objects=
+tap_srcs=
+
+if [ $tap = yes ]; then
+    protocols="$protocols -DTAP_INTERFACE -DGATEWAY_ROUTER"
+    tap_srcs="ini.c sk_route.c"
+    tap_objects="ini.o sk_route.o"
+fi
+
+if [ $change_src_port = yes ]; then
+    protocols="$protocols -DCHANGE_SRC_PORT"
+fi
+
+if [ $low_idle = yes ]; then
+    protocols="$protocols -DLOW_CPU_IDLE"
+fi
+
+if [ $low_cpu = yes ]; then
+    protocols="$protocols -DLOW_CPU_UTILIZATION"
+fi
+
+if [ $min_rate = yes ]; then
+  protocols="$protocols -DMIN_RATE_THRESH"
+fi
+
+tmp=$debug
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of debug must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --debug=yes\'
+  exit 1
+  ;;
+esac
+
+echo "debug is: " $debug
+
+if [ $debug = yes ]; then
+  debug="tp_debug.o gmt2local.o scps_errorNames.o tp_debugPort.o memory_debugger.o" ;
+  debugOptions="-DDEBUG_SUPPORT";
+else
+  debug=" " ;
+  debugOptions=" " ;
+fi
+
+debugOptions="$debugOptions -DNO_CVS_IDENTIFY"
+
+if [ $gateway = no ]; then
+if [ $encap = no ]; then
+  encap=udp
+fi
+fi
+
+echo SCPS-SP set to $scpssp
+echo MPF set to $mpf
+echo Compression set to $compress
+echo Compression algorithm set to $compression
+echo Default network layer is $nl_default
+echo Encapsulation set to $encap
+
+if [ $gateway = yes ]; then
+  echo SCPS being configured as a gateway
+fi
+
+if [ $secure_gateway = yes ]; then
+  echo SCPS being configured as a secure_gateway
+fi
+
+if [ $ipv6 = yes ]; then
+  echo SCPS being configured for ipv6 
+fi
+
+if [ $init_cwnd != 0 ]; then
+  echo initial cwnd set to $init_cwnd
+fi
+
+if [ $external_rule_generation = yes ]; then
+  echo external rule generation is turned on
+fi
+
+echo Debugging objects set to $debug
+#echo
+#echo lower_layer set to $lower_layer
+#echo protocols set to $protocols
+#echo netobjs set to $netobjs
+#echo
+
+
+host=`./config.guess`
+echo
+echo Configuring make file for $host
+echo
+
+#host=`$ac_config_sub $host_alias`
+host_cpu=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
+host_vendor=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
+host_os=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
+#echo host = $host host_cpu = $host_cpu host_vendor = $host_vendor host_os = $host_os
+OS=`echo $host_os | sed 's/^\([^\.]*\).\(.*\)$/\1/'`
+OSNAME=`echo $OS | sed 's/^\([^-0-9]*\)\([-0-9]\)\(.*\)$/\1/'`
+OSVER=`echo $OS | sed 's/^\([^-0-9]*\)\([-0-9]\)\(.*\)$/\2/'`
+#echo OSNAME = $OSNAME OSVER = $OSVER host_cpu = x $host_cpu x
+CPU=$host_cpu
+OLIBS=-lm
+case $OSNAME in
+freebsd2 | freebsd | FreeBSD)
+  OSDEFINE=-DFREEBSD  
+  ;;
+netbsd | netbsd1 | NetBSD)
+  OSDEFINE=-DNETBSD
+  ;;
+linux | linux-gn | Linux)
+  OSDEFINE=-DLINUX
+  ;;
+irix | irix5)
+  OSDEFINE=-DIRIX
+  ;;
+solaris)
+  OSDEFINE=-DSOLARIS
+  OLIBS="$OLIBS -lsocket -lnsl"
+  ;;
+sunos)
+  OSDEFINE=-DSUNOS
+  ;;
+*)
+  OSDEFINE=-D$OS
+  ;;
+esac
+case $CPU in
+i386 | i486 | i586 | i686 | x86_64)
+  CPUDEFINE=-DI386
+  ;;
+mips)
+  CPUDEFINE=-DMips
+  ;;
+sparc)
+  CPUDEFINE=-DSparc
+  ;;
+m68k | mc68000 | mc68010 | mc68020 | mc68030 | mc68040)
+  CPUDEFINE=-DMc68000
+  ;;
+*)
+  CPUDEFINE=-DINVALID
+  echo ERROR:  UNKNOWN CPU TYPE $CPU - FILE thread.c WILL REQUIRE PORTING
+  ;;
+esac
+
+
+#echo OSDEFINE = $OSDEFINE CPUDEFINE = $CPUDEFINE OLIBS = $OLIBS
+
+if [ $gateway = yes ]; then
+
+if [ $OSDEFINE = -DFREEBSD ]; then
+    echo
+    echo The SCPS Gateway is being configurred for the FreeBSD Operating
+    echo System version.
+    echo
+   if [ $tap = yes ]; then
+    echo CONFIGURATION WARNING:
+    echo
+    echo The SCPS gateway has been configured to use the tap
+    echo device for FreeBSD instead of divert sockets for passing
+    echo passing between user and kernel space.  It is assumed
+    echo you have configured the tap devices along with bridge
+    echo support in your kernel.
+    echo
+
+elif [ $OSDEFINE = -DNETBSD ]; then
+    echo
+    echo The SCPS Gateway is being configurred for the NetBSD Operating
+    echo System version.
+    echo
+   if [ $tap = yes ]; then
+    echo CONFIGURATION WARNING:
+    echo 
+    echo The SCPS gateway has been configured to use the tap
+    echo device for NetBSD instead of divert sockets for passing
+    echo passing between user and kernel space.  It is assumed
+    echo you have configured the tap devices along with bridge
+    echo support in your kernel.
+    echo
+
+  elif [ $OSDEFINE = -DLINUX ]; then
+   if [ $tun = yes ]; then
+    echo CONFIGURATION WARNING:
+    echo 
+    echo The SCPS gateway has been configured to use the tun
+    echo device for linux instead of divert sockets for passing
+    echo passing between user and kernel space.  It is assumed
+    echo you have configured the tun devices along with possible
+    echo new iptables, iproute2, also the corresponding kenrel
+    echo support.
+    echo
+   elif [ $tap = yes ]; then
+    echo CONFIGURATION WARNING:
+    echo 
+    echo The SCPS gateway has been configured to use the tap
+    echo device for linux instead of divert sockets for passing
+    echo passing between user and kernel space.  It is assumed
+    echo you have configured the tap devices along with brctl
+    echo and the corresponding kenrel support.
+    echo
+   else
+    echo This code does NOT check to ensure that such
+    echo functionality exists.
+    echo 
+    echo CONFIGURATION WARNING:
+    echo 
+    echo The SCPS gateway requires that divert functionality
+    echo be added to the linux kernel.  This code does NOT
+    echo check to ensure that such functionality exists.
+    echo 
+  fi
+   else
+    echo
+    echo
+    echo
+    echo CONFIGURATION ERROR:
+    echo
+    echo The SCPS Gateway is only supported on the FreeBSD 
+    echo and NetBSD Operating System 
+    echo or
+    echo version 2.2.2 or greater or the Linux Operating system.
+    echo 
+    echo Your operating system is currently set to: $OSDEFINE
+    echo
+    echo Configuration Aborted
+    exit
+  fi
+fi
+fi
+fi
+
+rm -f makefile.in1
+cat Makefile.in | sed "s/^CPU=/CPU= $CPUDEFINE/" > makefile.in1
+cat makefile.in1 | sed "s/^OS=/OS= $OSDEFINE/" > makefile.in2
+cat makefile.in2 | sed "s/^PROTOCOLS=/PROTOCOLS= $protocols/" > makefile.in1
+cat makefile.in1 | sed "s/^OTHERLIBS=/OTHERLIBS= $OLIBS/" > makefile.in2
+cat makefile.in2 | sed "s/^ENCAPSULATION=/ENCAPSULATION= $encap/" > makefile.in1
+cat makefile.in1 | sed "s/^NETOBJS=/NETOBJS= $netobjs/" > makefile.in2
+cat makefile.in2 | sed "s/^LOWER_LAYER=/LOWER_LAYER= $lower_layer/" > makefile.in1
+cat makefile.in1 | sed "s/^SYMTAB=/SYMTAB= $symtab/" > makefile.in2
+cat makefile.in2 | sed "s/^DEBUG_OBJECTS=/DEBUG_OBJECTS= $debug/" > makefile.in1
+cat makefile.in1 | sed "s/^MEMORY=/MEMORY= $memory/" > makefile.in2
+cat makefile.in2 | sed "s/^INIT_CWND=/INIT_CWND= $init_cwnd/" > makefile.in1
+cat makefile.in1 | sed "s/^DEBUG=/DEBUG= $debugOptions/" > makefile.in2
+cat makefile.in2 | sed "s/^NL_DEFAULT=/NL_DEFAULT= $nl_default/" > makefile.in1
+cat makefile.in1 | sed "s/^TUN_OBJECTS=/TUN_OBJECTS= $tun_objects/" > makefile.in2
+cat makefile.in2 | sed "s/^TUN_SRCS=/TUN_SRCS= $tun_srcs/" > makefile.in1
+cat makefile.in1 | sed "s/^TAP_SRCS=/TAP_SRCS= $tap_srcs/" > makefile.in2
+cat makefile.in2 | sed "s/^TAP_OBJECTS=/TAP_OBJECTS= $tap_objects/" > makefile.in1
+cat makefile.in1 | sed "s/^THREAD_SOURCE=/THREAD_SOURCE= $thread_source/" > makefile.in2
+mv makefile.in2 Makefile
+rm -f makefile.in1 makefile.in2

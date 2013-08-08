@@ -1,0 +1,7 @@
+Version 1.1.10 (Gateway / RI Merge)
+
+12/02/98
+
+At this time, there is a known bug in the BETS receive code that 
+results in improper operation.  A fix will be distributed when
+this bug has been corrected.

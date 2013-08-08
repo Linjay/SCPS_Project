@@ -1,0 +1,176 @@
+#!/bin/sh
+
+#Configuration defaults:  no security protocol, IP as the network protocol, 
+#no encapsulating IP headers.
+#
+symtab=no
+gateway_larger=no
+
+for arg in $*;
+do
+  # Handle --symtab<sp> or
+  #        --symtab=<sp>
+  case $next_arg in
+  --symtab)
+  if [ x$arg != x= ]; then
+    encap=`echo $arg | sed 's/=//'`
+    next_arg=
+  fi
+  ;;
+  *)
+    case $arg in
+    --symtab )
+      next_arg=--symtab
+      ;;
+    --symtab=* )
+      symtab=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$symtab = x ]; then
+        next_arg=--symtab
+      fi
+      ;;
+    --gateway_larger=* )
+      gateway_larger=`echo $arg | sed 's/^[-a-z_]*=//'`
+      if [ x$gateway_larger = x ]; then
+        next_arg=--gateway_larger
+      fi
+      ;;
+    --help | --h | -h | h)
+      echo
+      echo SCPS Makefile configuration utility
+      echo
+      echo
+      echo Configuration parameters:
+      echo
+      echo "   Symbol table present for debugging or not"
+      echo "      configure with '--symtab=yes' or '--symtab=no'"
+      echo "      default is --symtab=$symtab"
+      echo
+      exit 0
+      ;;
+   *)
+      echo Invalid argument to SCPS Makefile configuration utility
+      echo
+      echo "     Valid argument is --symtab"
+      echo "     Default is --symtab=$symtab"
+      echo
+      echo Please enter ./configure --help for more information
+      echo
+      exit 0
+      ;;
+    esac
+  esac
+done
+ 
+
+
+
+
+
+tmp=$symtab
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of symtab must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --symtab=yes\'
+  exit 1
+  ;;
+esac
+
+tmp=$gateway_larger
+case $tmp in
+yes | no)
+  ;;
+*)
+  echo The value of gateway_larger must be either \'yes\' or \'no\'
+  echo Valid command line syntax is \'./configure --gateway_larger=yes\'
+  exit 1
+  ;;
+esac
+
+if [ $symtab = yes ]; then
+  symtab=-g ;
+else
+  symtab=" " ;
+fi
+
+if [ $gateway_larger = yes ]; then
+  symtab="$symtab -DGATEWAY_LARGER"
+fi
+
+host=`../source/config.guess`
+echo
+echo Configuring make file for $host
+echo
+
+#host=`$ac_config_sub $host_alias`
+host_cpu=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
+host_vendor=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
+host_os=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
+#echo host = $host host_cpu = $host_cpu host_vendor = $host_vendor host_os = $host_os
+OS=`echo $host_os | sed 's/^\([^\.]*\).\(.*\)$/\1/'`
+OSNAME=`echo $OS | sed 's/^\([^-0-9]*\)\([-0-9]\)\(.*\)$/\1/'`
+OSVER=`echo $OS | sed 's/^\([^-0-9]*\)\([-0-9]\)\(.*\)$/\2/'`
+#echo OSNAME = $OSNAME OSVER = $OSVER host_cpu = x $host_cpu x
+CPU=$host_cpu
+OLIBS=-lm
+
+case $OSNAME in
+freebsd2 | freebsd | FreeBSD)
+  OSDEFINE=-DFREEBSD  
+  ;;
+netbsd | netbsd1 | NetBSD)
+  OSDEFINE=-DNETBSD
+  ;;
+linux | linux-gn | Linux)
+  OSDEFINE=-DLINUX
+  ;;
+irix | irix5)
+  OSDEFINE=-DIRIX
+  ;;
+solaris)
+  OSDEFINE=-DSOLARIS
+  OLIBS="$OLIBS -lsocket -lnsl"
+  ;;
+sunos)
+  OSDEFINE=-DSUNOS
+  ;;
+*)
+  OSDEFINE=-D$OS
+  ;;
+esac
+
+case $CPU in
+i386 | i486 | i586 | i686 | x86_64)
+  CPUDEFINE=-DI386
+  ;;
+mips)
+  CPUDEFINE=-DMips
+  ;;
+sparc)
+  CPUDEFINE=-DSparc
+  ;;
+m68k | mc68000 | mc68010 | mc68020 | mc68030 | mc68040)
+  CPUDEFINE=-DMc68000
+  ;;
+*)
+  CPUDEFINE=-DINVALID
+  echo ERROR:  UNKNOWN CPU TYPE $CPU - FILE thread.c WILL REQUIRE PORTING
+  ;;
+esac
+
+rm -f makefile.in1
+cat Makefile.in | sed "s/^CPU=/CPU= $CPUDEFINE/" > makefile.in1
+cat makefile.in1 | sed "s/^OS=/OS= $OSDEFINE/" > makefile.in2
+cat makefile.in2 | sed "s/^PROTOCOLS=/PROTOCOLS= $protocols/" > makefile.in1
+cat makefile.in1 | sed "s/^OTHERLIBS=/OTHERLIBS= $OLIBS/" > makefile.in2
+cat makefile.in2 | sed "s/^ENCAPSULATION=/ENCAPSULATION= $encap/" > makefile.in1
+cat makefile.in1 | sed "s/^NETOBJS=/NETOBJS= $netobjs/" > makefile.in2
+cat makefile.in2 | sed "s/^LOWER_LAYER=/LOWER_LAYER= $lower_layer/" > makefile.in1
+cat makefile.in1 | sed "s/^SYMTAB=/SYMTAB= $symtab/" > makefile.in2
+cat makefile.in2 | sed "s/^DEBUG_OBJECTS=/DEBUG_OBJECTS= $debug/" > makefile.in1
+mv makefile.in1 Makefile
+rm -f makefile.in1 makefile.in2
+
+
+

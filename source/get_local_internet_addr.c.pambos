@@ -1,0 +1,79 @@
+/*
+ * get_local_internet_addr uses the gethostname function and 
+ * gethostbyname function to retrieve the internet address of 
+ * the local host (the first one encountered is used).  The 
+ * host address is copied into the user-provided storage 
+ * pointed to by the calling parameter.
+ *
+ *  usage:
+ *  get_local_internet_addr(&place_to_stick_addr);
+ *
+ */
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/param.h>
+#include <stdio.h>
+#include "systype.h"
+
+extern int gethostname(char *name, int namelen);
+#include <varargs.h>
+extern void err_ret ( va_alist );
+#ifdef SOLARIS
+#ifndef _IN_ADDR_T
+#define _IN_ADDR_T
+typedef unsigned long in_addr_t;
+#endif
+in_addr_t inet_addr (const char *cp);
+#else
+unsigned long inet_addr(const char *cp);
+#endif
+
+
+#ifndef MAXHOSTNAMELEN 
+#define MAXHOSTNAMELEN 80
+#endif
+
+#ifndef INADDR_NONE
+#define INADDR_NONE 0xffffffff
+#endif
+
+struct hostent *hp;
+static char hostname[MAXHOSTNAMELEN +1];  
+int temp;
+
+int
+get_local_internet_addr(char *storage)
+{
+  if (gethostname(hostname, sizeof(hostname)) == -1) {
+    err_ret("get_local_internet_addr:  could not find local host name");
+    return(-1);
+  }
+  hostname[MAXHOSTNAMELEN] = '\0';  /* null terminate */
+  
+  if ((hp = gethostbyname(hostname)) == NULL) {
+    err_ret("gethostbyname error for %s\n", hostname);
+    return (-1);
+  }
+  
+  memcpy(storage, hp->h_addr, hp->h_length);
+  return(0);
+}
+
+long
+get_remote_internet_addr(char *hostname)
+{
+  unsigned long temp_inaddr;
+  
+  if((temp_inaddr = inet_addr(hostname)) != INADDR_NONE) return(temp_inaddr);
+  else {
+    if ((hp = gethostbyname(hostname)) == NULL) {
+      err_ret("Could not get remote internet address for %s", hostname);
+      exit(-1);
+    }
+    memcpy((char *) &temp_inaddr, hp->h_addr, sizeof(hp->h_length));
+    return(temp_inaddr);
+  }
+}

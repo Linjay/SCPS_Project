@@ -1,0 +1,67 @@
+The SCPS RI can be configured either a stand alone stack or as a transparent
+transport layer gateway.  Most people are interested in the transparent
+transport layer gateway (TCP PEP) as a mechanism to improve the performance
+of TCP over satellite, RF and other challanged environments.
+
+The following describes some of the documents in the distribution.
+
+ o README.STANDALONE.STACK - provides a quick overview on how to compile
+   the SCPS RI as a stand along stack.
+
+ o README.GATEWAY.FREEBSD.DIVERT - provides a quick overview on how
+   to compile the SCPS RI as a TCP PEP for the FreeBSD operating
+   system using divert sockets.  NOTE this FreeBSD vesion will only
+   operate as a network layer device.  Thus routing must be done external
+   to the gateway.
+
+ o README.GATAWAY.FREEBSD.TAP - provides a quick overview on how to compile
+   the SCPS RI as a TCP PEP for the FreeBSD operating system using the TAP
+   interface.  This method operates as a link layer spanning two
+   ethernet interfaces.  This method operates as a transparent
+   bridge and thus no external routing (unicast/multicast) is
+   required.  This is operates more like a drop in applicance to
+   an existing network.
+
+ o README.GATEWAY.LINUX.DIVERT - provides a quick overview on how to compile
+   the SCPS RI as a TCP PEP for the Linux operating system using a
+   ported divert method - PLEASE DON'T USE THIS METHOD - IT IS HERE FOR
+   HISTORICAL PURPOSES ONLY.
+
+ o README.GATEWAY.LINUX.TUN - provides a quick overview on how to
+   compile the SCPS RI as a TCP PEP for the Linux operating system using
+   the TUN interface.  This is similar to the FreeBSD method - thus an
+   routing must be done external to the gateway.
+
+ o README.GATAWAY.LINUX.TAP - provides a quick overview on how to compile
+   the SCPS RI as a TCP PEP for the Linux operating system using the TAP
+   interface.  This method operates as a link layer spanning two
+   ethernet interfaces.  This method operates as a transparent
+   bridge and thus no external routing (unicast/multicast) is
+   required.  This is operates more like a drop in applicance to
+   an existing network.
+
+ o  SCPS_UserSGuide_v2.0.pdf in the NEW_DOCS Directory -  The SCPS
+    gateway user's guide.
+
+ o  SCPS_FAQ_v1.0.PDF in the NEW_DOCS Directory -  A Frequently
+    Asked Questions (FAQ) about the SCPS gateway.  If there are
+    additional questions/answers please send them to me and I will
+    include them.
+
+ o  SMB_WAN_SCPS_v1.0.pdf in the NEW_DOCS Directory - This mini-white
+    paper discusses the interaction issues with Microsoft's Server
+    Message Block (SMB) protocol used to implement their File Sharing
+    over the net and how they interact with SCPS.
+
+Note there are some pdfs in the docs directory which describe the SCPS_RI
+as a standaole stack.  These are fairly old documents and if there may
+be discripencies with the documents listed above.  If so please use the
+information is the documents listed above as primary.
+
+
+Best Regads.
+
+	Pat
+
+
+
